@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #000000;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        #stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .shooting-star {
+            position: absolute;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, white, transparent);
+            animation: shoot 5s linear infinite;
+        }
+        @keyframes shoot {
+            from {
+                transform: translateX(-100px) translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(1000px) translateY(500px);
+                opacity: 0;
+            }
+        }
+        .terminal-container {
+            width: 920px;
+            height: 680px;
+            background: radial-gradient(ellipse at center, rgba(20, 0, 40, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
+            border: 2px solid #9d4edd;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow:
+                0 0 50px rgba(157, 78, 221, 0.5),
+                inset 0 0 80px rgba(157, 78, 221, 0.1);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+        .terminal-container::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            background: linear-gradient(45deg, #9d4edd, #3c096c, #7209b7, #9d4edd);
+            border-radius: 22px;
+            z-index: -1;
+            animation: borderRotate 4s linear infinite;
+            background-size: 300% 300%;
+        }
+        @keyframes borderRotate {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .header {
+            text-align: center;
+            color: #c77dff;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(157, 78, 221, 0.2), rgba(124, 9, 183, 0.1));
+            border: 2px solid rgba(157, 78, 221, 0.4);
+            border-radius: 10px;
+            text-shadow: 0 0 15px #9d4edd;
+        }
+        .star-symbol {
+            display: inline-block;
+            color: #e0aaff;
+            animation: orbit 3s linear infinite;
+        }
+        @keyframes orbit {
+            0% { transform: rotate(0deg) translateX(10px) rotate(0deg); }
+            100% { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
+        }
+        .terminal {
+            height: 540px;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 10px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: rgba(60, 9, 108, 0.2);
+            border-radius: 5px;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #9d4edd, #7209b7);
+            border-radius: 5px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 12px;
+            color: #e0aaff;
+            text-shadow: 0 0 8px rgba(224, 170, 255, 0.6);
+            animation: cosmicFade 0.5s ease-in;
+        }
+        @keyframes cosmicFade {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .output.nebula {
+            color: #c77dff;
+            font-weight: bold;
+        }
+        .output.galaxy {
+            color: #10b981;
+            text-shadow: 0 0 10px #10b981;
+        }
+        .output.warning {
+            color: #fbbf24;
+            text-shadow: 0 0 10px #fbbf24;
+        }
+        .output.alert {
+            color: #ef4444;
+            text-shadow: 0 0 10px #ef4444;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .prompt {
+            color: #9d4edd;
+            margin-right: 10px;
+            text-shadow: 0 0 15px #9d4edd;
+            font-weight: bold;
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% {
+                text-shadow: 0 0 15px #9d4edd;
+            }
+            50% {
+                text-shadow: 0 0 25px #9d4edd, 0 0 35px #7209b7;
+            }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #e0aaff;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 5px rgba(224, 170, 255, 0.5);
+        }
+        .status-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            background: rgba(60, 9, 108, 0.6);
+            border: 1px solid #9d4edd;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #c77dff;
+            text-shadow: 0 0 5px #9d4edd;
+        }
+        .planet {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .planet-1 { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+        .planet-2 { background: #3b82f6; box-shadow: 0 0 10px #3b82f6; animation-delay: 0.5s; }
+        .planet-3 { background: #10b981; box-shadow: 0 0 10px #10b981; animation-delay: 1s; }
+    </style>
+</head>
+<body>
+    <div id="stars"></div>
+    <div class="terminal-container">
+        <div class="status-panel">
+            SECTOR: <span id="sector">ALPHA-7</span><br>
+            COORDS: <span id="coords">0,0,0</span><br>
+            WARP: <span id="warp">OFFLINE</span>
+        </div>
+        <div class="header">
+            <span class="star-symbol">✦</span>
+            COSMIC NAVIGATION TERMINAL
+            <span class="star-symbol">✦</span><br>
+            <div style="font-size: 13px; margin-top: 10px; color: #e0aaff;">
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+                Interstellar Communication Array • Stardate 2024.11.09
+            </div>
+            <div style="margin-top: 10px;">
+                <span class="planet planet-1"></span>
+                <span class="planet planet-2"></span>
+                <span class="planet planet-3"></span>
+            </div>
+        </div>
+        <div class="terminal">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">⟩⟩⟩</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        const sectorDisplay = document.getElementById('sector');
+        const coordsDisplay = document.getElementById('coords');
+        const warpDisplay = document.getElementById('warp');
+
+        // Create star field
+        function createStarField() {
+            const starsContainer = document.getElementById('stars');
+
+            // Regular stars
+            for (let i = 0; i < 200; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                starsContainer.appendChild(star);
+            }
+
+            // Shooting stars
+            for (let i = 0; i < 3; i++) {
+                const shootingStar = document.createElement('div');
+                shootingStar.className = 'shooting-star';
+                shootingStar.style.top = Math.random() * 50 + '%';
+                shootingStar.style.left = '-100px';
+                shootingStar.style.animationDelay = (Math.random() * 10 + i * 5) + 's';
+                starsContainer.appendChild(shootingStar);
+            }
+        }
+        createStarField();
+
+        let currentSector = 'ALPHA-7';
+        let coords = {x: 0, y: 0, z: 0};
+
+        const commands = {
+            help: `╔═══════════════════════════════════════════════════════╗
+║        COSMIC NAVIGATION SYSTEM - COMMANDS            ║
+╚═══════════════════════════════════════════════════════╝
+
+  NAVIGATION:
+    warp [sector]     - Engage warp drive to sector
+    scan              - Scan surrounding space
+    coordinates       - Display current coordinates
+    navigate [x,y,z]  - Set navigation coordinates
+
+  EXPLORATION:
+    explore           - Explore current sector
+    planets           - List planets in sector
+    anomaly           - Search for anomalies
+    nebula            - Nebula information
+
+  COMMUNICATION:
+    hail [target]     - Hail nearby vessels
+    broadcast [msg]   - Broadcast message
+    signal            - Check signal strength
+
+  SHIP SYSTEMS:
+    status            - Ship systems status
+    shields           - Shield configuration
+    weapons           - Weapons systems
+    diagnostics       - Run diagnostics
+
+  UTILITIES:
+    starmap           - Display star map
+    database          - Access stellar database
+    log               - Captain's log entry
+    clear             - Clear display
+    echo              - Echo message`,
+
+            warp: (args) => {
+                if (args.length === 0) {
+                    return '⚠ Specify destination sector. Example: warp BETA-9';
+                }
+
+                const sector = args[0].toUpperCase();
+                currentSector = sector;
+                sectorDisplay.textContent = sector;
+
+                coords.x = Math.floor(Math.random() * 10000);
+                coords.y = Math.floor(Math.random() * 10000);
+                coords.z = Math.floor(Math.random() * 1000);
+                coordsDisplay.textContent = `${coords.x},${coords.y},${coords.z}`;
+
+                warpDisplay.textContent = 'ENGAGED';
+                setTimeout(() => {
+                    warpDisplay.textContent = 'OFFLINE';
+                }, 3000);
+
+                return `✦ WARP DRIVE ENGAGED ✦
+
+Destination: Sector ${sector}
+
+▓▓▓░░░░░░░░░░░░░░░░░  15% - Initiating warp field
+▓▓▓▓▓▓░░░░░░░░░░░░░░  30% - Engaging antimatter reactor
+▓▓▓▓▓▓▓▓▓░░░░░░░░░░░  45% - Building warp bubble
+▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  60% - Entering subspace
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░  75% - Warp 5 achieved
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░  90% - Approaching destination
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 100% - Dropping out of warp
+
+✓ Arrived at Sector ${sector}
+New coordinates: ${coords.x}, ${coords.y}, ${coords.z}`;
+            },
+
+            scan: () => {
+                const objects = [
+                    '★ Class M planet',
+                    '☄ Asteroid field',
+                    '◯ Gas giant',
+                    '☀ Yellow dwarf star',
+                    '∞ Wormhole signature',
+                    '◈ Space station',
+                    '◊ Crystalline entity',
+                    '⬟ Derelict spacecraft'
+                ];
+
+                let result = '✦ LONG RANGE SENSOR SCAN ✦\n\n';
+                result += '◉ ◉ ◉ ◉ ◉   Scanning...\n\n';
+                result += `Sector: ${currentSector}\n`;
+                result += `Range: 10 light-years\n\n`;
+                result += 'DETECTED OBJECTS:\n';
+
+                const count = Math.floor(Math.random() * 4 + 2);
+                for (let i = 0; i < count; i++) {
+                    const obj = objects[Math.floor(Math.random() * objects.length)];
+                    const distance = (Math.random() * 10).toFixed(2);
+                    result += `  ${obj} - ${distance} LY\n`;
+                }
+
+                return result;
+            },
+
+            coordinates: () => {
+                return `✦ NAVIGATION COORDINATES ✦
+
+Current Position:
+  X: ${coords.x}
+  Y: ${coords.y}
+  Z: ${coords.z}
+
+Sector: ${currentSector}
+Galactic Quadrant: ${['Alpha', 'Beta', 'Gamma', 'Delta'][Math.floor(Math.random() * 4)]}
+Distance from Sol: ${(Math.random() * 100 + 10).toFixed(2)} light-years`;
+            },
+
+            navigate: (args) => {
+                if (args.length === 0) {
+                    return 'Specify coordinates. Example: navigate 1000,2000,300';
+                }
+
+                const parts = args[0].split(',');
+                if (parts.length === 3) {
+                    coords.x = parseInt(parts[0]) || coords.x;
+                    coords.y = parseInt(parts[1]) || coords.y;
+                    coords.z = parseInt(parts[2]) || coords.z;
+                    coordsDisplay.textContent = `${coords.x},${coords.y},${coords.z}`;
+
+                    return `✓ Navigation set to: ${coords.x}, ${coords.y}, ${coords.z}\nEngaging impulse drive...`;
+                } else {
+                    return 'Invalid format. Use: navigate x,y,z';
+                }
+            },
+
+            explore: () => {
+                const discoveries = [
+                    'Ancient alien ruins discovered on planet surface',
+                    'Rich dilithium crystal deposits detected',
+                    'Unknown energy signature emanating from nearby moon',
+                    'Primitive life forms detected in planetary atmosphere',
+                    'Subspace anomaly creating temporal distortions',
+                    'Abandoned space station with intact technology',
+                    'Rare stellar phenomenon: binary pulsar system',
+                    'Massive ice planet with subsurface ocean'
+                ];
+
+                return `✦ EXPLORATION REPORT ✦\n\nSector ${currentSector} Analysis:\n\n${discoveries[Math.floor(Math.random() * discoveries.length)]}\n\nRecommendation: Further investigation advised.`;
+            },
+
+            planets: () => {
+                const types = ['Class M (Habitable)', 'Class J (Gas Giant)', 'Class D (Asteroid)', 'Class K (Desert)', 'Class L (Ice)'];
+                const count = Math.floor(Math.random() * 5 + 1);
+
+                let result = `✦ PLANETARY SURVEY - SECTOR ${currentSector} ✦\n\n`;
+                result += `Planets Detected: ${count}\n\n`;
+
+                for (let i = 1; i <= count; i++) {
+                    result += `Planet ${i}:\n`;
+                    result += `  Type: ${types[Math.floor(Math.random() * types.length)]}\n`;
+                    result += `  Mass: ${(Math.random() * 10).toFixed(2)} Earth masses\n`;
+                    result += `  Distance: ${(Math.random() * 5).toFixed(2)} AU\n\n`;
+                }
+
+                return result;
+            },
+
+            anomaly: () => {
+                const anomalies = [
+                    'Temporal distortion detected - Time dilation effect: 2.3x',
+                    'Gravimetric fluctuations - Possible black hole nearby',
+                    'Subspace tear detected - Interdimensional rift forming',
+                    'Tachyon emissions - FTL particles detected',
+                    'Quantum singularity - Extreme gravity well',
+                    'Negative energy field - Dark matter concentration',
+                    'Plasma storm - High radiation levels',
+                    'No significant anomalies detected in this sector'
+                ];
+
+                return `✦ ANOMALY SCAN ✦\n\n${anomalies[Math.floor(Math.random() * anomalies.length)]}`;
+            },
+
+            nebula: () => {
+                const nebulae = [
+                    {name: 'Carina Nebula', type: 'Emission', distance: '7,500 LY'},
+                    {name: 'Orion Nebula', type: 'Diffuse', distance: '1,344 LY'},
+                    {name: 'Eagle Nebula', type: 'Emission', distance: '7,000 LY'},
+                    {name: 'Horsehead Nebula', type: 'Dark', distance: '1,375 LY'}
+                ];
+
+                const neb = nebulae[Math.floor(Math.random() * nebulae.length)];
+
+                return `✦ NEBULA INFORMATION ✦
+
+Name: ${neb.name}
+Type: ${neb.type} Nebula
+Distance: ${neb.distance}
+Composition: Hydrogen, Helium, Cosmic Dust
+Visibility: ${Math.floor(Math.random() * 50 + 50)}%
+Radiation Level: ${['Low', 'Moderate', 'High'][Math.floor(Math.random() * 3)]}
+
+Status: Safe for navigation`;
+            },
+
+            hail: (args) => {
+                if (args.length === 0) {
+                    return 'Specify target to hail.';
+                }
+
+                return `✦ HAILING ${args.join(' ').toUpperCase()} ✦
+
+Establishing subspace channel...
+Frequency: ${(Math.random() * 900 + 100).toFixed(2)} MHz
+
+Status: ${Math.random() > 0.3 ? '✓ Contact established' : '✗ No response'}`;
+            },
+
+            broadcast: (args) => {
+                if (args.length === 0) {
+                    return 'Specify message to broadcast.';
+                }
+
+                return `✦ BROADCASTING MESSAGE ✦
+
+"${args.join(' ')}"
+
+Transmission power: 100%
+Range: 50 light-years
+Status: ✓ Broadcast complete`;
+            },
+
+            signal: () => {
+                const strength = Math.floor(Math.random() * 40 + 60);
+                return `✦ SIGNAL ANALYSIS ✦
+
+Signal Strength: ${'▓'.repeat(Math.floor(strength/10))}${'░'.repeat(10-Math.floor(strength/10))} ${strength}%
+Interference: ${Math.floor(Math.random() * 30)}%
+Latency: ${(Math.random() * 2).toFixed(3)}s
+
+Status: ${strength > 70 ? '✓ Excellent' : '⚠ Acceptable'}`;
+            },
+
+            status: () => {
+                return `✦ SHIP SYSTEMS STATUS ✦
+
+Main Power:         ▓▓▓▓▓▓▓▓▓░  95%
+Shields:            ▓▓▓▓▓▓▓▓░░  80%
+Weapons:            ▓▓▓▓▓▓▓▓▓▓ 100%
+Life Support:       ▓▓▓▓▓▓▓▓▓▓ 100%
+Warp Drive:         ▓▓▓▓▓▓▓░░░  70%
+Impulse:            ▓▓▓▓▓▓▓▓▓░  90%
+Sensors:            ▓▓▓▓▓▓▓▓▓░  95%
+
+Hull Integrity: ✓ INTACT
+Crew Status: ✓ ALL STATIONS OPERATIONAL`;
+            },
+
+            shields: () => {
+                return `✦ SHIELD CONFIGURATION ✦
+
+Forward:  ████████░░  85%
+Aft:      ███████░░░  75%
+Port:     █████████░  90%
+Starboard:████████░░  80%
+
+Harmonic Frequency: ${Math.floor(Math.random() * 900 + 100)} kHz
+Modulation: Active
+Power Consumption: 24 MW
+
+Status: ✓ SHIELDS UP`;
+            },
+
+            weapons: () => {
+                return `✦ WEAPONS SYSTEMS ✦
+
+Phaser Banks:
+  Forward Array:    ✓ CHARGED (100%)
+  Aft Array:        ✓ CHARGED (100%)
+
+Torpedo Launchers:
+  Photon Torpedoes: ${Math.floor(Math.random() * 20 + 30)} remaining
+  Quantum Torpedoes:${Math.floor(Math.random() * 10 + 5)} remaining
+
+Targeting Systems:  ✓ OPERATIONAL
+Fire Control:       ✓ READY
+
+Status: ✓ ALL WEAPONS ONLINE`;
+            },
+
+            diagnostics: () => {
+                return `✦ RUNNING DIAGNOSTICS ✦
+
+Scanning systems...
+
+▓▓▓▓░░░░░░░░░░░░░░░░  Testing main computer
+▓▓▓▓▓▓▓░░░░░░░░░░░░░  Checking propulsion
+▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░  Analyzing power grid
+▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░  Verifying life support
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░  Testing communications
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  Diagnostics complete
+
+Result: ✓ ALL SYSTEMS NOMINAL
+No anomalies detected.`;
+            },
+
+            starmap: () => {
+                return `✦ STELLAR CARTOGRAPHY ✦
+
+       •  DELTA    •
+         •           GAMMA
+   •                    •
+ ALPHA  •  YOU ARE  •
+    •     HERE!    BETA  •
+       •              •
+          •   •
+             •
+
+Explored: 47%
+Uncharted: 53%
+
+Nearby Sectors: ALPHA-7, BETA-3, GAMMA-9, DELTA-4`;
+            },
+
+            database: () => {
+                return `✦ STELLAR DATABASE ✦
+
+Available Records:
+  [1] Known Star Systems: 50,000+
+  [2] Charted Planets: 150,000+
+  [3] Alien Species: 1,247
+  [4] Wormholes: 73
+  [5] Federation Starships: 12,000+
+  [6] Deep Space Stations: 450+
+
+Query the database for specific information.`;
+            },
+
+            log: () => {
+                const stardate = (new Date().getTime() / 100000).toFixed(2);
+                return `✦ CAPTAIN'S LOG ✦
+
+Stardate: ${stardate}
+
+Currently in Sector ${currentSector} at coordinates
+${coords.x}, ${coords.y}, ${coords.z}.
+
+All systems operational. Crew morale is high.
+Continuing exploration mission as planned.
+
+End log entry.`;
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`⟩⟩⟩ ${cmd}`, 'nebula');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result);
+                } else if (cmd) {
+                    addOutput(`✗ UNKNOWN COMMAND: ${command}\nType 'help' for available commands.`, 'warning');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('✦ INITIALIZING COSMIC NAVIGATION TERMINAL ✦', 'nebula');
+        addOutput('', '');
+        addOutput('Loading stellar database...', 'galaxy');
+        addOutput('Calibrating sensors...', 'galaxy');
+        addOutput('Establishing subspace link...', 'galaxy');
+        addOutput('', '');
+        addOutput('✓ System ready', 'galaxy');
+        addOutput('', '');
+        addOutput('Welcome, Commander. Type "help" to view available commands.', '');
+        addOutput(`Current location: Sector ${currentSector}`, '');
+        addOutput('', '');
+    </script>
+</body>
+</html>

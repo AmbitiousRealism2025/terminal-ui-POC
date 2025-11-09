@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Rain Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #0a0e27;
+            color: #00ff9f;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        #code-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+        .terminal-wrapper {
+            width: 920px;
+            height: 660px;
+            position: relative;
+            z-index: 1;
+        }
+        .terminal-container {
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 39, 0.95);
+            border: 2px solid rgba(0, 255, 159, 0.3);
+            border-radius: 12px;
+            box-shadow:
+                0 0 30px rgba(0, 255, 159, 0.2),
+                0 0 60px rgba(124, 58, 237, 0.1),
+                inset 0 0 40px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .terminal-header {
+            height: 45px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.8), rgba(0, 255, 159, 0.6));
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(0, 255, 159, 0.3);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .window-dots {
+            display: flex;
+            gap: 6px;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .dot:hover {
+            transform: scale(1.2);
+        }
+        .dot.red { background: linear-gradient(135deg, #ff5f56, #ff3b30); }
+        .dot.yellow { background: linear-gradient(135deg, #ffbd2e, #ff9500); }
+        .dot.green { background: linear-gradient(135deg, #27c93f, #00ff9f); }
+        .terminal-label {
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 11px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff9f;
+            box-shadow: 0 0 10px #00ff9f;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .terminal-body {
+            height: calc(100% - 45px);
+            padding: 20px;
+            overflow-y: auto;
+            background: rgba(10, 14, 39, 0.7);
+        }
+        .terminal-body::-webkit-scrollbar {
+            width: 10px;
+        }
+        .terminal-body::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        .terminal-body::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(124, 58, 237, 0.8), rgba(0, 255, 159, 0.8));
+            border-radius: 5px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #00ff9f;
+            line-height: 1.6;
+            animation: slideInCode 0.3s ease-out;
+            text-shadow: 0 0 5px rgba(0, 255, 159, 0.3);
+        }
+        @keyframes slideInCode {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .output.comment {
+            color: #7c3aed;
+            font-style: italic;
+        }
+        .output.error {
+            color: #ff5f56;
+            font-weight: bold;
+        }
+        .output.success {
+            color: #27c93f;
+            font-weight: bold;
+        }
+        .output.info {
+            color: #00d4ff;
+        }
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(0, 255, 159, 0.05);
+            border: 1px solid rgba(0, 255, 159, 0.2);
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .input-line:focus-within {
+            border-color: rgba(0, 255, 159, 0.5);
+            box-shadow: 0 0 15px rgba(0, 255, 159, 0.2);
+        }
+        .prompt {
+            color: #7c3aed;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .prompt::before {
+            content: '▸';
+            color: #00ff9f;
+            font-size: 18px;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #00ff9f;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 3px rgba(0, 255, 159, 0.3);
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: #00ff9f;
+            animation: codeBlink 1s infinite;
+            box-shadow: 0 0 8px #00ff9f;
+            border-radius: 1px;
+        }
+        @keyframes codeBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 8px;
+            text-transform: uppercase;
+        }
+        .tag.info { background: rgba(0, 212, 255, 0.2); color: #00d4ff; border: 1px solid rgba(0, 212, 255, 0.3); }
+        .tag.success { background: rgba(39, 201, 63, 0.2); color: #27c93f; border: 1px solid rgba(39, 201, 63, 0.3); }
+        .tag.error { background: rgba(255, 95, 86, 0.2); color: #ff5f56; border: 1px solid rgba(255, 95, 86, 0.3); }
+        .tag.code { background: rgba(124, 58, 237, 0.2); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.3); }
+    </style>
+</head>
+<body>
+    <canvas id="code-canvas"></canvas>
+    <div class="terminal-wrapper">
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <div class="header-left">
+                    <div class="window-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="terminal-label">code-terminal@developer</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>LIVE</span>
+                </div>
+            </div>
+            <div class="terminal-body">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">dev</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Animated code rain background
+        const canvas = document.getElementById('code-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const codeSnippets = [
+            'const', 'function', 'import', 'export', 'class', 'async', 'await',
+            'if', 'else', 'for', 'while', 'return', 'try', 'catch',
+            'let', 'var', '{}', '[]', '()', '=>', '===', '!==',
+            'true', 'false', 'null', 'undefined', 'new', 'this',
+            '0x', '0b', '0o', '&&', '||', '++', '--', '...',
+            'map', 'filter', 'reduce', 'forEach', 'push', 'pop'
+        ];
+
+        class CodeDrop {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = -50;
+                this.speed = Math.random() * 3 + 2;
+                this.text = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+                this.opacity = Math.random() * 0.5 + 0.5;
+                this.color = Math.random() > 0.5 ? '#00ff9f' : '#7c3aed';
+            }
+
+            update() {
+                this.y += this.speed;
+                if (this.y > canvas.height) {
+                    this.y = -50;
+                    this.x = Math.random() * canvas.width;
+                    this.text = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.opacity;
+                ctx.font = '14px monospace';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        const drops = Array.from({ length: 50 }, () => new CodeDrop());
+
+        function animateCodeRain() {
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drops.forEach(drop => {
+                drop.update();
+                drop.draw();
+            });
+
+            requestAnimationFrame(animateCodeRain);
+        }
+
+        animateCodeRain();
+
+        // Terminal logic
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return '<span class="tag info">help</span>Available Developer Commands:\n\n' +
+                       '  help          Show this help menu\n' +
+                       '  about         About Code Terminal\n' +
+                       '  projects      List current projects\n' +
+                       '  skills        Show technical skills\n' +
+                       '  git           Git status simulation\n' +
+                       '  npm           NPM commands\n' +
+                       '  docker        Docker status\n' +
+                       '  deploy        Deploy application\n' +
+                       '  test          Run test suite\n' +
+                       '  build         Build project\n' +
+                       '  clear         Clear terminal\n' +
+                       '  echo          Echo message';
+            },
+            about: () => {
+                return '<span class="tag code">about</span>Code Rain Terminal v2.0\n\n' +
+                       'A modern developer terminal interface\n' +
+                       'featuring live code animation background.\n\n' +
+                       'Built with:\n' +
+                       '  • HTML5 Canvas for animations\n' +
+                       '  • Modern CSS gradients\n' +
+                       '  • Responsive design patterns\n' +
+                       '  • Real-time code effects\n\n' +
+                       'Perfect for developers who love aesthetics.';
+            },
+            projects: () => {
+                return '<span class="tag info">projects</span>Active Development Projects:\n\n' +
+                       '  [1] terminal-ui-poc          ████████░░  80%  ✓ In Progress\n' +
+                       '  [2] react-dashboard          ██████████ 100%  ✓ Completed\n' +
+                       '  [3] api-gateway              ███████░░░  70%  ⚡ Active\n' +
+                       '  [4] mobile-app-redesign      █████░░░░░  50%  🔧 Development\n' +
+                       '  [5] ml-recommendation        ███░░░░░░░  30%  📊 Planning\n\n' +
+                       'Total: 5 projects | 3 active | 1 completed';
+            },
+            skills: () => {
+                return '<span class="tag code">skills</span>Technical Skill Set:\n\n' +
+                       '  JavaScript/TypeScript    ████████████████░░  95%\n' +
+                       '  React/Next.js            ███████████████░░░  90%\n' +
+                       '  Node.js/Express          ██████████████░░░░  85%\n' +
+                       '  Python/Django            ████████████░░░░░░  75%\n' +
+                       '  Docker/Kubernetes        ███████████░░░░░░░  70%\n' +
+                       '  PostgreSQL/MongoDB       ██████████████░░░░  80%\n' +
+                       '  AWS/Cloud Services       ████████████░░░░░░  75%\n' +
+                       '  Git/CI-CD                ███████████████░░░  88%\n\n' +
+                       'Proficiency: Senior Full-Stack Developer';
+            },
+            git: () => {
+                return '<span class="tag success">git</span>Git Status:\n\n' +
+                       '  Branch: feature/terminal-ui\n' +
+                       '  Status: ✓ Clean working directory\n' +
+                       '  Ahead:  3 commits\n\n' +
+                       '  Recent commits:\n' +
+                       '    a7f3b2e  feat: Add code rain animation\n' +
+                       '    c4d8e1f  style: Update color scheme\n' +
+                       '    b9a2c5d  refactor: Improve performance\n\n' +
+                       '  Files changed: 5 | Insertions: +247 | Deletions: -83';
+            },
+            npm: () => {
+                return '<span class="tag info">npm</span>NPM Package Status:\n\n' +
+                       '  ✓ Installing dependencies...\n' +
+                       '  ✓ react@18.2.0\n' +
+                       '  ✓ typescript@5.0.4\n' +
+                       '  ✓ vite@4.3.9\n' +
+                       '  ✓ tailwindcss@3.3.2\n\n' +
+                       '  Added 287 packages in 12.4s\n' +
+                       '  24 packages are looking for funding\n\n' +
+                       '  All packages up to date!';
+            },
+            docker: () => {
+                return '<span class="tag code">docker</span>Docker Container Status:\n\n' +
+                       '  CONTAINER ID   IMAGE          STATUS       PORTS\n' +
+                       '  a4f7b8c2       node:18        Up 2 hours   0.0.0.0:3000\n' +
+                       '  d9e3f1a6       postgres:15    Up 2 hours   5432/tcp\n' +
+                       '  c7b5d8e4       redis:7        Up 2 hours   6379/tcp\n\n' +
+                       '  Total: 3 containers running\n' +
+                       '  Network: bridge\n' +
+                       '  Status: ✓ All healthy';
+            },
+            deploy: () => {
+                return '<span class="tag success">deploy</span>Deployment Process:\n\n' +
+                       '  → Building production bundle...\n' +
+                       '  ✓ TypeScript compilation complete\n' +
+                       '  ✓ Assets optimized and minified\n' +
+                       '  ✓ Running security checks...\n' +
+                       '  ✓ Running tests... 47 passed\n' +
+                       '  → Deploying to production...\n' +
+                       '  ✓ Upload complete\n' +
+                       '  ✓ Cache invalidated\n\n' +
+                       '  🚀 Deployment successful!\n' +
+                       '  URL: https://app.production.com\n' +
+                       '  Time: 2m 34s';
+            },
+            test: () => {
+                return '<span class="tag info">test</span>Running Test Suite:\n\n' +
+                       '  PASS  src/components/Terminal.test.tsx\n' +
+                       '  PASS  src/utils/helpers.test.ts\n' +
+                       '  PASS  src/hooks/useTerminal.test.tsx\n' +
+                       '  PASS  src/services/api.test.ts\n\n' +
+                       '  Test Suites:  4 passed, 4 total\n' +
+                       '  Tests:        47 passed, 47 total\n' +
+                       '  Snapshots:    12 passed, 12 total\n' +
+                       '  Time:         8.742s\n\n' +
+                       '  Coverage: 94.2% statements | 91.8% branches';
+            },
+            build: () => {
+                return '<span class="tag code">build</span>Building Project:\n\n' +
+                       '  vite v4.3.9 building for production...\n' +
+                       '  ✓ 127 modules transformed\n' +
+                       '  ✓ Rendering chunks...\n' +
+                       '  ✓ Computing gzip size...\n\n' +
+                       '  dist/index.html           2.14 kB │ gzip:  0.98 kB\n' +
+                       '  dist/assets/index.js    147.82 kB │ gzip: 48.91 kB\n' +
+                       '  dist/assets/index.css    24.17 kB │ gzip:  6.43 kB\n\n' +
+                       '  ✓ Built in 4.82s';
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput('▸ dev ' + cmd, '');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, '', true);
+                } else if (cmd) {
+                    addOutput('<span class="tag error">error</span>Command not found: ' + command + '\nType "help" for available commands.', '', true);
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '', isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.textContent = text;
+            }
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Welcome message
+        addOutput('<span class="tag success">system</span>Code Rain Terminal initialized', '', true);
+        addOutput('<span class="tag info">version</span>2.0.0 | Node v18.16.0 | npm 9.5.1', '', true);
+        addOutput('', '');
+        addOutput('// Welcome, Developer! 👨‍💻', 'comment');
+        addOutput('// Type "help" to see available commands', 'comment');
+        addOutput('', '');
+    </script>
+</body>
+</html>

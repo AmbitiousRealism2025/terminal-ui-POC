@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Command Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Orbitron', 'Courier New', monospace;
+            background: #000000;
+            color: #00ffcc;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle linear infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .terminal-container {
+            width: 950px;
+            height: 700px;
+            background: linear-gradient(135deg, rgba(0, 10, 30, 0.95) 0%, rgba(0, 20, 40, 0.95) 100%);
+            border: 2px solid #00ffcc;
+            border-radius: 8px;
+            box-shadow:
+                0 0 20px rgba(0, 255, 204, 0.3),
+                inset 0 0 100px rgba(0, 100, 200, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+        .header-bar {
+            height: 50px;
+            background: linear-gradient(to right, rgba(0, 50, 100, 0.8), rgba(0, 30, 60, 0.8));
+            border-bottom: 2px solid #00ffcc;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        .station-name {
+            color: #00ffcc;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ffcc;
+            letter-spacing: 2px;
+        }
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+        }
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #00ffcc;
+        }
+        .led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .led.green { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        .led.blue { background: #00ffcc; box-shadow: 0 0 8px #00ffcc; }
+        .led.orange { background: #ff9900; box-shadow: 0 0 8px #ff9900; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .main-content {
+            display: flex;
+            height: calc(100% - 50px);
+        }
+        .sidebar {
+            width: 200px;
+            background: rgba(0, 20, 40, 0.6);
+            border-right: 1px solid #00ffcc;
+            padding: 15px;
+        }
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+        .sidebar-title {
+            color: #00ffcc;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        .sidebar-item {
+            font-size: 10px;
+            color: #66ddff;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .terminal-main {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .terminal-main::-webkit-scrollbar {
+            width: 8px;
+        }
+        .terminal-main::-webkit-scrollbar-track {
+            background: rgba(0, 20, 40, 0.5);
+        }
+        .terminal-main::-webkit-scrollbar-thumb {
+            background: #00ffcc;
+            border-radius: 4px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #00ffcc;
+            text-shadow: 0 0 2px #00ffcc;
+            font-size: 14px;
+            animation: fadeInSpace 0.3s ease-out;
+        }
+        @keyframes fadeInSpace {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .output.system {
+            color: #66ddff;
+        }
+        .output.alert {
+            color: #ff9900;
+        }
+        .output.success {
+            color: #00ff88;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 15px;
+            align-items: center;
+        }
+        .prompt {
+            color: #00ffcc;
+            margin-right: 10px;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #00ffcc;
+            font-family: 'Orbitron', 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 2px #00ffcc;
+        }
+        .orbit-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+        }
+        .orbit {
+            width: 100%;
+            height: 100%;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            border-radius: 50%;
+            position: relative;
+        }
+        .satellite {
+            width: 8px;
+            height: 8px;
+            background: #00ffcc;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: -4px 0 0 -4px;
+            box-shadow: 0 0 10px #00ffcc;
+            animation: orbit 4s linear infinite;
+        }
+        @keyframes orbit {
+            from {
+                transform: rotate(0deg) translateX(55px) rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg) translateX(55px) rotate(-360deg);
+            }
+        }
+        .planet {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle at 30% 30%, #4488ff, #1144aa);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            box-shadow: 0 0 20px rgba(68, 136, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <div class="terminal-container">
+        <div class="header-bar">
+            <div class="station-name">SPACE STATION COMMAND</div>
+            <div class="status-indicators">
+                <div class="indicator">
+                    <div class="led green"></div>
+                    <span>LIFE SUPPORT</span>
+                </div>
+                <div class="indicator">
+                    <div class="led blue"></div>
+                    <span>COMMS</span>
+                </div>
+                <div class="indicator">
+                    <div class="led orange"></div>
+                    <span>SHIELDS</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="sidebar-section">
+                    <div class="sidebar-title">SYSTEMS</div>
+                    <div class="sidebar-item">
+                        <span>Power</span>
+                        <span>98%</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>O2</span>
+                        <span>100%</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Fuel</span>
+                        <span>87%</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Water</span>
+                        <span>92%</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-title">CREW</div>
+                    <div class="sidebar-item">
+                        <span>Total</span>
+                        <span>12</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Active</span>
+                        <span>9</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Rest</span>
+                        <span>3</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-title">ORBIT</div>
+                    <div class="sidebar-item">
+                        <span>Alt</span>
+                        <span>408km</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Vel</span>
+                        <span>7.66km/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="terminal-main">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">STATION&gt;</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+        </div>
+
+        <div class="orbit-indicator">
+            <div class="orbit">
+                <div class="planet"></div>
+                <div class="satellite"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 200; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+
+        // Terminal logic
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return '══════════════════════════════════════════════\n' +
+                       'SPACE STATION COMMAND - AVAILABLE COMMANDS\n' +
+                       '══════════════════════════════════════════════\n' +
+                       '  help       - Display this help message\n' +
+                       '  status     - Station systems status\n' +
+                       '  orbit      - Orbital parameters\n' +
+                       '  crew       - Crew roster and status\n' +
+                       '  scan       - Scan surrounding space\n' +
+                       '  comms      - Communications log\n' +
+                       '  shields    - Shield status and control\n' +
+                       '  dock       - Docking bay status\n' +
+                       '  mission    - Current mission objectives\n' +
+                       '  clear      - Clear terminal\n' +
+                       '  echo       - Echo message';
+            },
+            status: () => {
+                return 'STATION SYSTEMS STATUS:\n\n' +
+                       '  ╔═══════════════════════════════════╗\n' +
+                       '  ║ LIFE SUPPORT        [✓] OPTIMAL  ║\n' +
+                       '  ║ POWER SYSTEMS       [✓] 98%      ║\n' +
+                       '  ║ COMMUNICATIONS      [✓] ONLINE   ║\n' +
+                       '  ║ NAVIGATION          [✓] LOCKED   ║\n' +
+                       '  ║ SHIELDS             [!] STANDBY  ║\n' +
+                       '  ║ WEAPONS             [✓] ARMED    ║\n' +
+                       '  ║ SENSORS             [✓] ACTIVE   ║\n' +
+                       '  ║ DOCKING SYSTEMS     [✓] READY    ║\n' +
+                       '  ╚═══════════════════════════════════╝\n\n' +
+                       'All critical systems operational.';
+            },
+            orbit: () => {
+                return 'ORBITAL PARAMETERS:\n\n' +
+                       '  Altitude:        408.2 km\n' +
+                       '  Velocity:        7.66 km/s\n' +
+                       '  Period:          92.8 minutes\n' +
+                       '  Inclination:     51.6°\n' +
+                       '  Eccentricity:    0.0001\n' +
+                       '  Next Pass:       47 minutes\n\n' +
+                       'Orbital stability: NOMINAL';
+            },
+            crew: () => {
+                const crew = [
+                    'CDR Chen, Li         - Commander',
+                    'PLT Rodriguez, Maria - Pilot',
+                    'ENG Kowalski, Jan    - Engineer',
+                    'SCI Patel, Anika     - Scientist',
+                    'MED Thompson, James  - Medical',
+                    'COM O\'Brien, Sean    - Communications',
+                ];
+                return 'CREW ROSTER:\n\n' +
+                       crew.map(c => '  ' + c).join('\n') +
+                       '\n\n  Total Personnel: 12\n  On Duty: 9\n  Resting: 3';
+            },
+            scan: () => {
+                const objects = [
+                    ['Debris field', '234°', '12.4 km'],
+                    ['Communication satellite', '087°', '45.7 km'],
+                    ['Unknown object', '156°', '89.2 km'],
+                    ['Supply vessel', '312°', '234.5 km']
+                ];
+                let result = 'SPACE SCAN RESULTS:\n\n';
+                result += '  Scanning 360° arc...\n\n';
+                const numObjects = Math.floor(Math.random() * 3) + 2;
+                for (let i = 0; i < numObjects; i++) {
+                    const obj = objects[Math.floor(Math.random() * objects.length)];
+                    result += `  [○] ${obj[0]}\n      Bearing: ${obj[1]} | Range: ${obj[2]}\n\n`;
+                }
+                return result + 'Scan complete.';
+            },
+            comms: () => {
+                return 'RECENT COMMUNICATIONS:\n\n' +
+                       '  [14:23] MISSION_CTRL: Status report requested\n' +
+                       '  [14:25] STATION: All systems nominal\n' +
+                       '  [14:45] SUPPLY_01: ETA 2 hours to dock\n' +
+                       '  [15:12] MISSION_CTRL: Acknowledged\n' +
+                       '  [15:30] SCIENCE_LAB: Experiment 7 complete\n\n' +
+                       'Communications channel: CLEAR';
+            },
+            shields: () => {
+                const status = Math.random() > 0.5 ? 'ACTIVE' : 'STANDBY';
+                return `SHIELD STATUS:\n\n` +
+                       `  Status:          ${status}\n` +
+                       `  Power Level:     ${Math.floor(Math.random() * 20) + 80}%\n` +
+                       `  Coverage:        360° spherical\n` +
+                       `  Type:            Electromagnetic\n` +
+                       `  Last Test:       ${Math.floor(Math.random() * 24)} hours ago\n\n` +
+                       `Shield generators: OPERATIONAL`;
+            },
+            dock: () => {
+                return 'DOCKING BAY STATUS:\n\n' +
+                       '  Bay 1:  [OCCUPIED] - Shuttle Alpha\n' +
+                       '  Bay 2:  [EMPTY]    - Available\n' +
+                       '  Bay 3:  [OCCUPIED] - Cargo Pod\n' +
+                       '  Bay 4:  [EMPTY]    - Available\n\n' +
+                       'Docking clamps: OPERATIONAL\n' +
+                       'Airlock systems: READY';
+            },
+            mission: () => {
+                return '╔════════════════════════════════════════╗\n' +
+                       '║      CURRENT MISSION OBJECTIVES        ║\n' +
+                       '╠════════════════════════════════════════╣\n' +
+                       '║  [✓] Maintain orbital position         ║\n' +
+                       '║  [✓] Monitor solar activity            ║\n' +
+                       '║  [→] Receive supply vessel             ║\n' +
+                       '║  [ ] Conduct spacewalk repairs         ║\n' +
+                       '║  [ ] Complete research experiments     ║\n' +
+                       '╚════════════════════════════════════════╝\n\n' +
+                       'Mission day: 147 of 365';
+            },
+            clear: () => {
+                output.innerHTML = '';
+                return '';
+            },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`STATION> ${cmd}`, 'system');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result);
+                } else if (cmd) {
+                    addOutput(`ERROR: Command not recognized: ${command}`, 'alert');
+                    addOutput(`Type 'help' for available commands`, 'alert');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Initial messages
+        addOutput('╔════════════════════════════════════════════════╗', 'success');
+        addOutput('║   SPACE STATION COMMAND TERMINAL v3.2          ║', 'success');
+        addOutput('║   International Space Cooperation Initiative   ║', 'success');
+        addOutput('╚════════════════════════════════════════════════╝', 'success');
+        addOutput('');
+        addOutput('Station systems initialized...', 'system');
+        addOutput('Orbital parameters locked...', 'system');
+        addOutput('Communications established with Mission Control...', 'system');
+        addOutput('');
+        addOutput('Type "help" for available commands.', 'system');
+    </script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean Deep Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: linear-gradient(to bottom, #001f3f 0%, #003366 50%, #000814 100%);
+            color: #00d4ff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        #bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bubble {
+            position: absolute;
+            bottom: -50px;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, rgba(0, 212, 255, 0) 70%);
+            border-radius: 50%;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            animation: rise linear infinite;
+        }
+        @keyframes rise {
+            to {
+                bottom: 100%;
+                transform: translateX(20px);
+            }
+        }
+        .terminal-container {
+            width: 900px;
+            height: 650px;
+            background: rgba(0, 8, 20, 0.85);
+            border: 2px solid #00d4ff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow:
+                0 0 30px rgba(0, 212, 255, 0.5),
+                inset 0 0 50px rgba(0, 100, 150, 0.2);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(5px);
+        }
+        .terminal-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #00d4ff, #0088cc, #00d4ff);
+            border-radius: 15px;
+            z-index: -1;
+            opacity: 0.5;
+            animation: borderFlow 3s linear infinite;
+        }
+        @keyframes borderFlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+        .header {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            text-shadow: 0 0 10px #00d4ff;
+            font-size: 14px;
+        }
+        .wave {
+            animation: wave 2s ease-in-out infinite;
+            display: inline-block;
+        }
+        @keyframes wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        .terminal {
+            height: 540px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: rgba(0, 20, 40, 0.5);
+            border-radius: 4px;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: #00d4ff;
+            border-radius: 4px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #00d4ff;
+            text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+            animation: fadeInWave 0.5s ease-in;
+        }
+        @keyframes fadeInWave {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .output.info {
+            color: #4dd0e1;
+        }
+        .output.success {
+            color: #26ffc6;
+        }
+        .output.warning {
+            color: #ffaa00;
+        }
+        .output.depth {
+            color: #0099cc;
+            font-style: italic;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .prompt {
+            color: #00d4ff;
+            margin-right: 10px;
+            text-shadow: 0 0 10px #00d4ff;
+            font-weight: bold;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 10px #00d4ff; }
+            50% { text-shadow: 0 0 20px #00d4ff, 0 0 30px #0088cc; }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #00d4ff;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+        }
+        .fish {
+            display: inline-block;
+            animation: swim 0.5s ease-in-out infinite;
+        }
+        @keyframes swim {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(5px); }
+        }
+        .sonar {
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+        .depth-meter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #00d4ff;
+            font-size: 12px;
+            text-shadow: 0 0 5px #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <div id="bubbles"></div>
+    <div class="terminal-container">
+        <div class="depth-meter" id="depth-meter">DEPTH: 0m</div>
+        <div class="header">
+            <div class="wave">~</div><div class="wave">~</div><div class="wave">~</div>
+            OCEANOGRAPHIC DEEP SEA TERMINAL
+            <div class="wave">~</div><div class="wave">~</div><div class="wave">~</div><br>
+            ═══════════════════════════════════════════<br>
+            STATUS: SUBMERGED | PRESSURE: NOMINAL | O₂: 98%
+        </div>
+        <div class="terminal">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">ocean&gt;</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        const depthMeter = document.getElementById('depth-meter');
+        let currentDepth = 0;
+
+        // Create bubbles
+        function createBubbles() {
+            const bubblesContainer = document.getElementById('bubbles');
+            for (let i = 0; i < 15; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.style.left = Math.random() * 100 + '%';
+                bubble.style.width = (Math.random() * 20 + 10) + 'px';
+                bubble.style.height = bubble.style.width;
+                bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                bubble.style.animationDelay = Math.random() * 5 + 's';
+                bubblesContainer.appendChild(bubble);
+            }
+        }
+        createBubbles();
+
+        const commands = {
+            help: `OCEANOGRAPHIC TERMINAL COMMANDS:
+
+  NAVIGATION:
+    dive [meters]  - Descend to specified depth
+    surface        - Return to surface
+    sonar          - Activate sonar scan
+    location       - Current coordinates
+
+  EXPLORATION:
+    scan           - Scan surrounding area
+    life           - Detect marine life
+    explore        - Explore current depth
+    collect        - Collect samples
+
+  SYSTEMS:
+    status         - System status report
+    lights         - Toggle external lights
+    pressure       - Check pressure levels
+    oxygen         - Oxygen levels
+
+  UTILITIES:
+    clear          - Clear terminal
+    echo           - Echo message
+    marine-facts   - Random ocean facts`,
+
+            dive: (args) => {
+                const depth = parseInt(args[0]) || 100;
+                currentDepth = Math.min(depth, 11000);
+                depthMeter.textContent = `DEPTH: ${currentDepth}m`;
+
+                let message = `Diving to ${currentDepth} meters...\n\n`;
+                message += '▼▼▼ Descending ▼▼▼\n';
+
+                if (currentDepth < 200) {
+                    message += 'ZONE: Sunlight Zone (Epipelagic)\n';
+                    message += 'Light levels: Bright\n';
+                    message += 'Visibility: Excellent';
+                } else if (currentDepth < 1000) {
+                    message += 'ZONE: Twilight Zone (Mesopelagic)\n';
+                    message += 'Light levels: Dim\n';
+                    message += 'Temperature: Dropping\n';
+                    message += 'Bioluminescent organisms detected';
+                } else if (currentDepth < 4000) {
+                    message += 'ZONE: Midnight Zone (Bathypelagic)\n';
+                    message += 'Light levels: None\n';
+                    message += 'Pressure: Extreme\n';
+                    message += 'Strange creatures detected';
+                } else {
+                    message += 'ZONE: Abyssal Zone\n';
+                    message += 'Light levels: Absolute darkness\n';
+                    message += 'Pressure: Crushing\n';
+                    message += 'You are in the deep unknown...';
+                }
+
+                return message;
+            },
+
+            surface: () => {
+                currentDepth = 0;
+                depthMeter.textContent = 'DEPTH: 0m';
+                return '▲▲▲ Ascending to surface ▲▲▲\n\nSunlight detected\nWaves visible\nSurfaced successfully!';
+            },
+
+            sonar: () => {
+                const objects = [
+                    'School of fish - 45m NE',
+                    'Shipwreck - 230m E',
+                    'Whale - 180m SW',
+                    'Submarine canyon - 500m N',
+                    'Coral reef - 120m S',
+                    'Underwater cave - 310m W',
+                    'Kelp forest - 85m SE'
+                ];
+
+                let result = '🔊 SONAR ACTIVATED 🔊\n\n';
+                result += '● ○ ○ ○ ○   Scanning...\n';
+                result += '○ ● ○ ○ ○   Scanning...\n';
+                result += '○ ○ ● ○ ○   Scanning...\n\n';
+                result += 'DETECTED OBJECTS:\n';
+
+                const detected = Math.floor(Math.random() * 3 + 2);
+                for (let i = 0; i < detected; i++) {
+                    result += `  • ${objects[Math.floor(Math.random() * objects.length)]}\n`;
+                }
+
+                return result;
+            },
+
+            location: () => {
+                const lat = (Math.random() * 180 - 90).toFixed(4);
+                const lon = (Math.random() * 360 - 180).toFixed(4);
+                return `CURRENT POSITION:
+
+  Latitude:  ${lat}°
+  Longitude: ${lon}°
+  Depth:     ${currentDepth}m
+  Region:    Pacific Ocean
+  Grid:      ${Math.floor(Math.random() * 100)}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+            },
+
+            scan: () => {
+                return `ENVIRONMENTAL SCAN:
+
+  Temperature:    ${Math.floor(Math.random() * 20 + 4)}°C
+  Salinity:       ${(Math.random() * 2 + 34).toFixed(1)} PSU
+  Current:        ${(Math.random() * 3).toFixed(1)} knots ${['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.floor(Math.random() * 8)]}
+  Visibility:     ${Math.floor(Math.random() * 50 + 10)}m
+  Pressure:       ${(currentDepth * 0.1 + 1).toFixed(1)} ATM
+  pH Level:       ${(Math.random() * 0.4 + 7.9).toFixed(2)}`;
+            },
+
+            life: () => {
+                const creatures = [
+                    '🐟 Tropical fish school',
+                    '🦈 Shark passing by',
+                    '🐙 Octopus camouflaged on rocks',
+                    '🦑 Giant squid in the distance',
+                    '🐳 Blue whale song detected',
+                    '🦀 Crabs scuttling on seafloor',
+                    '🐠 Colorful reef fish',
+                    '🦐 Shrimp colony',
+                    '⭐ Starfish on rocks',
+                    '🪸 Coral polyps feeding'
+                ];
+
+                let result = 'MARINE LIFE DETECTED:\n\n';
+                const count = Math.floor(Math.random() * 4 + 2);
+                for (let i = 0; i < count; i++) {
+                    result += `  ${creatures[Math.floor(Math.random() * creatures.length)]}\n`;
+                }
+
+                return result;
+            },
+
+            explore: () => {
+                const discoveries = [
+                    'Ancient pottery shard discovered',
+                    'Unusual rock formation found',
+                    'Bioluminescent plankton cloud',
+                    'Underwater thermal vent detected',
+                    'School of bioluminescent jellyfish',
+                    'Rare deep-sea creature spotted',
+                    'Manganese nodules on seafloor',
+                    'Hydrothermal chimney formation'
+                ];
+
+                return `EXPLORATION REPORT:\n\n${discoveries[Math.floor(Math.random() * discoveries.length)]}\n\nCoordinates logged for further study.`;
+            },
+
+            collect: () => {
+                const samples = [
+                    'Water sample',
+                    'Sediment core',
+                    'Biological specimen',
+                    'Mineral sample',
+                    'Plankton sample'
+                ];
+
+                return `Sample collected: ${samples[Math.floor(Math.random() * samples.length)]}\nStored in container #${Math.floor(Math.random() * 99 + 1)}`;
+            },
+
+            status: () => {
+                return `SUBMARINE STATUS REPORT:
+
+  Hull Integrity:  ████████████████████ 100%
+  Battery:         ██████████████░░░░░░  75%
+  Oxygen:          ████████████████░░░░  85%
+  Life Support:    ✓ OPERATIONAL
+  Communications:  ✓ OPERATIONAL
+  Propulsion:      ✓ OPERATIONAL
+  Sonar:           ✓ OPERATIONAL
+
+  All systems nominal.`;
+            },
+
+            lights: () => {
+                return Math.random() > 0.5
+                    ? '💡 External lights: ON\nArea illuminated'
+                    : '🔦 External lights: OFF\nConserving power';
+            },
+
+            pressure: () => {
+                const pressure = (currentDepth * 0.1 + 1).toFixed(2);
+                return `PRESSURE READING:\n\n  Current: ${pressure} ATM\n  Hull rating: 600 ATM\n  Safety margin: ${((600 - pressure) / 600 * 100).toFixed(1)}%\n\n  STATUS: ${pressure < 500 ? '✓ SAFE' : '⚠ APPROACHING LIMIT'}`;
+            },
+
+            oxygen: () => {
+                const o2 = Math.floor(Math.random() * 10 + 88);
+                return `OXYGEN SYSTEMS:\n\n  Level: ${o2}%\n  Reserves: ${Math.floor(Math.random() * 48 + 24)} hours\n  Scrubbers: ✓ ACTIVE\n  Generation: ✓ OPERATIONAL`;
+            },
+
+            'marine-facts': () => {
+                const facts = [
+                    'The ocean covers 71% of Earth\'s surface.',
+                    'We\'ve explored less than 5% of the ocean.',
+                    'The deepest part is Mariana Trench at 10,994m.',
+                    'The ocean contains 97% of Earth\'s water.',
+                    'Pressure increases by 1 ATM every 10m of depth.',
+                    'The ocean has more than 200,000 identified species.',
+                    'Coral reefs support 25% of all marine species.',
+                    'The longest mountain range is underwater (Mid-Ocean Ridge).',
+                    'Sound travels 4 times faster in water than air.'
+                ];
+
+                return `🌊 MARINE FACT:\n\n${facts[Math.floor(Math.random() * facts.length)]}`;
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`ocean> ${cmd}`, 'info');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'sonar');
+                } else if (cmd) {
+                    addOutput(`⚠ Unknown command: ${command}\nType 'help' for available commands.`, 'warning');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Initialization
+        addOutput('╔═══════════════════════════════════════════╗', 'success');
+        addOutput('║  DEEP SEA RESEARCH VESSEL - NAUTILUS-7   ║', 'success');
+        addOutput('╚═══════════════════════════════════════════╝', 'success');
+        addOutput('');
+        addOutput('Systems initialized...', 'info');
+        addOutput('Submarine ready for deployment.', 'info');
+        addOutput('');
+        addOutput('🌊 Welcome to the Ocean Deep Terminal! 🌊', 'success');
+        addOutput('Type "help" to see available commands or "dive 100" to begin your journey.', 'depth');
+        addOutput('');
+    </script>
+</body>
+</html>

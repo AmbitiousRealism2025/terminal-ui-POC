@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaporwave Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', 'Consolas', monospace;
+            background: linear-gradient(180deg, #1a0033 0%, #330066 30%, #ff00ff 100%);
+            color: #ff71ce;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        #grid-background {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60%;
+            perspective: 800px;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .grid {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            bottom: 0;
+            left: -50%;
+            transform: rotateX(60deg);
+            background-image:
+                linear-gradient(0deg, transparent 24%, rgba(255, 0, 255, 0.3) 25%, rgba(255, 0, 255, 0.3) 26%, transparent 27%, transparent 74%, rgba(255, 0, 255, 0.3) 75%, rgba(255, 0, 255, 0.3) 76%, transparent 77%),
+                linear-gradient(90deg, transparent 24%, rgba(0, 255, 255, 0.3) 25%, rgba(0, 255, 255, 0.3) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.3) 75%, rgba(0, 255, 255, 0.3) 76%, transparent 77%);
+            background-size: 80px 80px;
+            animation: gridScroll 20s linear infinite;
+        }
+        @keyframes gridScroll {
+            0% { transform: rotateX(60deg) translateY(0); }
+            100% { transform: rotateX(60deg) translateY(80px); }
+        }
+        #sun {
+            position: fixed;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #ff00ff 0%, #ff71ce 50%, #ffb3d9 100%);
+            box-shadow:
+                0 0 100px #ff00ff,
+                0 0 200px #ff71ce,
+                inset 0 0 50px rgba(255, 255, 255, 0.3);
+            z-index: 0;
+            animation: sunPulse 4s ease-in-out infinite;
+        }
+        @keyframes sunPulse {
+            0%, 100% {
+                box-shadow: 0 0 100px #ff00ff, 0 0 200px #ff71ce, inset 0 0 50px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 150px #ff00ff, 0 0 250px #ff71ce, 0 0 300px #01cdfe, inset 0 0 50px rgba(255, 255, 255, 0.5);
+            }
+        }
+        .sun-line {
+            position: absolute;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, transparent, #ff00ff, transparent);
+            opacity: 0.6;
+        }
+        .terminal-container {
+            width: 900px;
+            height: 650px;
+            background: rgba(26, 0, 51, 0.85);
+            border: 3px solid #ff71ce;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow:
+                0 0 40px rgba(255, 113, 206, 0.6),
+                0 0 80px rgba(1, 205, 254, 0.4),
+                inset 0 0 60px rgba(255, 0, 255, 0.1);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+        .terminal-container::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: linear-gradient(45deg, #ff00ff, #01cdfe, #ff71ce, #ff00ff);
+            border-radius: 18px;
+            z-index: -1;
+            animation: rainbowRotate 6s linear infinite;
+            background-size: 400% 400%;
+        }
+        @keyframes rainbowRotate {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .header {
+            text-align: center;
+            color: #ff71ce;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(1, 205, 254, 0.2));
+            border: 2px solid rgba(255, 113, 206, 0.5);
+            border-radius: 10px;
+            text-shadow:
+                0 0 10px #ff71ce,
+                0 0 20px #ff00ff,
+                0 0 30px #01cdfe;
+            font-size: 16px;
+            animation: headerGlow 3s ease-in-out infinite;
+        }
+        @keyframes headerGlow {
+            0%, 100% {
+                text-shadow: 0 0 10px #ff71ce, 0 0 20px #ff00ff, 0 0 30px #01cdfe;
+            }
+            50% {
+                text-shadow: 0 0 20px #ff71ce, 0 0 40px #ff00ff, 0 0 60px #01cdfe;
+            }
+        }
+        .retro-text {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .wave-separator {
+            color: #01cdfe;
+            animation: colorShift 2s ease-in-out infinite alternate;
+        }
+        @keyframes colorShift {
+            0% { color: #01cdfe; }
+            50% { color: #ff71ce; }
+            100% { color: #b967ff; }
+        }
+        .terminal {
+            height: 520px;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 113, 206, 0.3);
+        }
+        .terminal::-webkit-scrollbar {
+            width: 12px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: linear-gradient(180deg, #1a0033, #330066);
+            border-radius: 6px;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #ff00ff, #01cdfe);
+            border-radius: 6px;
+            box-shadow: 0 0 10px #ff00ff;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #ff71ce;
+            text-shadow:
+                0 0 5px #ff71ce,
+                0 0 10px #ff00ff;
+            animation: vaporFade 0.5s ease-in;
+            line-height: 1.6;
+        }
+        @keyframes vaporFade {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+                text-shadow: 0 0 20px #ff71ce, 0 0 40px #ff00ff;
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+                text-shadow: 0 0 5px #ff71ce, 0 0 10px #ff00ff;
+            }
+        }
+        .output.cyan {
+            color: #01cdfe;
+            text-shadow: 0 0 5px #01cdfe, 0 0 10px #01cdfe;
+        }
+        .output.purple {
+            color: #b967ff;
+            text-shadow: 0 0 5px #b967ff, 0 0 10px #b967ff;
+        }
+        .output.yellow {
+            color: #fdff00;
+            text-shadow: 0 0 5px #fdff00, 0 0 10px #fdff00;
+        }
+        .output.white {
+            color: #ffffff;
+            text-shadow: 0 0 5px #ffffff;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .prompt {
+            color: #01cdfe;
+            margin-right: 10px;
+            text-shadow:
+                0 0 10px #01cdfe,
+                0 0 20px #01cdfe;
+            font-weight: bold;
+            font-size: 16px;
+            animation: promptPulse 2s ease-in-out infinite;
+        }
+        @keyframes promptPulse {
+            0%, 100% {
+                color: #01cdfe;
+                text-shadow: 0 0 10px #01cdfe, 0 0 20px #01cdfe;
+            }
+            50% {
+                color: #ff71ce;
+                text-shadow: 0 0 10px #ff71ce, 0 0 20px #ff71ce;
+            }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ff71ce;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 5px #ff71ce;
+        }
+        .ascii-palm {
+            color: #01cdfe;
+            line-height: 1.2;
+            text-shadow: 0 0 10px #01cdfe;
+        }
+        .status-bar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 12px;
+            background: rgba(1, 205, 254, 0.2);
+            border: 2px solid #01cdfe;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #01cdfe;
+            text-shadow: 0 0 5px #01cdfe;
+            animation: statusBlink 3s ease-in-out infinite;
+        }
+        @keyframes statusBlink {
+            0%, 100% { border-color: #01cdfe; color: #01cdfe; }
+            50% { border-color: #ff71ce; color: #ff71ce; }
+        }
+    </style>
+</head>
+<body>
+    <div id="grid-background">
+        <div class="grid"></div>
+    </div>
+    <div id="sun">
+        <div class="sun-line" style="top: 30%;"></div>
+        <div class="sun-line" style="top: 40%;"></div>
+        <div class="sun-line" style="top: 50%;"></div>
+        <div class="sun-line" style="top: 60%;"></div>
+        <div class="sun-line" style="top: 70%;"></div>
+    </div>
+    <div class="terminal-container">
+        <div class="status-bar">
+            ✦ ONLINE ✦<br>
+            AESTHETIC MODE
+        </div>
+        <div class="header">
+            <div class="retro-text">
+                ▲ V A P O R W A V E   T E R M I N A L ▲
+            </div>
+            <div class="wave-separator">≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋</div>
+            <div style="font-size: 12px; margin-top: 8px; color: #01cdfe;">
+                ｟ Ａ Ｅ Ｓ Ｔ Ｈ Ｅ Ｔ Ｉ Ｃ   Ｃ Ｏ Ｍ Ｐ Ｕ Ｔ Ｉ Ｎ Ｇ ｠<br>
+                ♪ リラックス • 1985-1995 • サイバー ♪
+            </div>
+        </div>
+        <div class="terminal">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">≫</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const palmTree = `
+        ////||\\\\\\\\
+       /////||\\\\\\\\\\\\
+      //////||\\\\\\\\\\\\\\
+        ////||\\\\\\\\
+          ||
+          ||
+          ||`;
+
+        const commands = {
+            help: `▼▼▼ ＡＥＳＴＨＥＴＩＣ ＣＯＭＭＡＮＤＳ ▼▼▼
+
+  ♪ VAPORWAVE UTILITIES:
+    aesthetic     - Display aesthetic art
+    relax         - Relaxation mode
+    palm          - Display palm tree
+    sunset        - Sunset colors
+    retrowave     - Retro wave animation
+    vibes         - Check the vibes
+
+  ♪ RETRO COMMANDS:
+    playlist      - Show vaporwave playlist
+    arcade        - Launch arcade mode
+    cassette      - Play virtual cassette
+    vhs           - VHS tracking adjustment
+    mall          - Virtual mall directory
+
+  ♪ SYSTEM COMMANDS:
+    status        - System status
+    time          - Current time (aesthetic)
+    weather       - Weather report
+    clear         - Clear terminal
+    echo          - Echo message
+
+  ♪ FUN STUFF:
+    quote         - Inspirational quotes
+    drink         - Virtual drink menu
+    city          - Cyber city tour
+    dream         - Dream sequence`,
+
+            aesthetic: () => {
+                return `
+  █████╗ ███████╗███████╗████████╗██╗  ██╗███████╗████████╗██╗ ██████╗
+ ██╔══██╗██╔════╝██╔════╝╚══██╔══╝██║  ██║██╔════╝╚══██╔══╝██║██╔════╝
+ ███████║█████╗  ███████╗   ██║   ███████║█████╗     ██║   ██║██║
+ ██╔══██║██╔══╝  ╚════██║   ██║   ██╔══██║██╔══╝     ██║   ██║██║
+ ██║  ██║███████╗███████║   ██║   ██║  ██║███████╗   ██║   ██║╚██████╗
+ ╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝
+
+            ♪ ～ Ｆ ｅ ｅ ｌ  ｔ ｈ ｅ  ｖ ｉ ｂ ｅ ｓ ～ ♪`;
+            },
+
+            relax: () => {
+                return `✧･ﾟ: *✧･ﾟ:* ＲＥＬＡＸＡＴＩＯＮ ＭＯＤＥ *:･ﾟ✧*:･ﾟ✧
+
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+     ～ Take a deep breath ～
+     ～ Close your eyes ～
+     ～ Feel the waves ～
+     ～ You are calm ～
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+🌊 Ocean sounds playing...
+🌴 Palm trees swaying...
+🌅 Sunset mode activated...
+
+Status: Maximum chill achieved ✓`;
+            },
+
+            palm: () => {
+                return palmTree;
+            },
+
+            sunset: () => {
+                return `
+    ║█║▌║█║▌│║▌║▌█║
+
+      ☀ ＳＵＮＳＥＴ ＣＯＬＯＲＳ ☀
+
+    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓  Pink
+    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓  Purple
+    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓  Cyan
+    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓  Magenta
+    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓  Violet
+
+    ║█║▌║█║▌│║▌║▌█║`;
+            },
+
+            retrowave: () => {
+                return `
+    ╔══════════════════════════════════╗
+    ║   ＲＥＴＲＯＷＡＶＥ  ＬＯＡＤＩＮＧ   ║
+    ╚══════════════════════════════════╝
+
+    ▓▓▓▓▓░░░░░░░░░░░░░░░  25%
+    ▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░  50%
+    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░  75%
+    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 100%
+
+    ✓ Now playing: Neon Dreams
+    Artist: ＶＡＰＯＲＷＡＶＥ  ８０'ｓ
+    Duration: ∞ ETERNAL ∞`;
+            },
+
+            vibes: () => {
+                const vibeLevel = Math.floor(Math.random() * 30 + 70);
+                return `✦ ＶＩＢＥ ＣＨＥＣＫ ✦
+
+Current vibe level:
+${'█'.repeat(Math.floor(vibeLevel/5))}${'░'.repeat(20-Math.floor(vibeLevel/5))} ${vibeLevel}%
+
+Aesthetic score: ${Math.floor(Math.random() * 20 + 80)}/100
+Chill factor: ${['Maximum', 'Optimal', 'Excellent', 'Supreme'][Math.floor(Math.random() * 4)]}
+Mood: ${['Relaxed', 'Dreamy', 'Nostalgic', 'Euphoric'][Math.floor(Math.random() * 4)]}
+
+Status: ✓ Vibes immaculate`;
+            },
+
+            playlist: () => {
+                return `♪ ＶＡＰＯＲＷＡＶＥ ＰＬＡＹＬＩＳＴ ♪
+
+🎵 Now Playing:
+   01. リラックス - City Nights
+   02. サイバー - Neon Dreams  ◀ NOW
+   03. 夢 - Digital Sunset
+   04. 愛 - Mall Soft
+   05. 未来 - Future Memories
+   06. 雨 - Rain in Tokyo
+   07. 夜 - Midnight Drive
+   08. 海 - Ocean Breeze
+
+Duration: ∞ ♪ ～ Endless Loop ～ ♪`;
+            },
+
+            arcade: () => {
+                return `
+    ╔═══════════════════════════════╗
+    ║  ＡＲＣＡＤＥ  ＳＥＬＥＣＴ  ＭＥＮＵ ║
+    ╠═══════════════════════════════╣
+    ║                               ║
+    ║  [1] ＮＥＯＮ ＲＡＣＥＲ        ║
+    ║  [2] ＣＹＢＥＲ ＦＩＧＨＴＥＲ    ║
+    ║  [3] ＳＰＡＣＥ ＧＬＩＤＥＲ      ║
+    ║  [4] ＰＩＸＥＬ ＱＵＥＳＴ        ║
+    ║                               ║
+    ╠═══════════════════════════════╣
+    ║ INSERT COIN: ¥100             ║
+    ╚═══════════════════════════════╝
+
+    Credits: ${Math.floor(Math.random() * 10 + 5)}
+    High Score: ${Math.floor(Math.random() * 90000 + 10000)}`;
+            },
+
+            cassette: () => {
+                return `
+    ┌─────────────────────────────┐
+    │  ████████████████████████   │
+    │  █ ＶＡＰＯＲＷＡＶＥ  ＭＩＸ█   │
+    │  ████████████████████████   │
+    │   ___________________       │
+    │  |  ═══════════════  |      │
+    │  | ▓▓▓▓▓░░░░░░░▓▓▓▓ |      │
+    │  |  ═══════════════  |      │
+    │   ￣￣￣￣￣￣￣￣￣￣￣       │
+    │         ⊙ Side A ⊙          │
+    └─────────────────────────────┘
+
+    ▶ Playing... Track 3
+    Quality: Perfectly Lo-Fi
+    Status: Nostalgic AF`;
+            },
+
+            vhs: () => {
+                const tracking = Math.floor(Math.random() * 100);
+                return `╔════════════════════════════╗
+║   VHS TRACKING ADJUST      ║
+╠════════════════════════════╣
+║                            ║
+║  ││││││││││││││││││││││││  ║
+║  ││││││││││││││││││││││││  ║
+║         ▼ ▼ ▼              ║
+║  ${'═'.repeat(Math.floor(tracking/5))}▓${'═'.repeat(20-Math.floor(tracking/5))}  ║
+║         ▲ ▲ ▲              ║
+║  ││││││││││││││││││││││││  ║
+║  ││││││││││││││││││││││││  ║
+║                            ║
+╠════════════════════════════╣
+║ Tracking: ${tracking}%            ║
+║ Quality: ${tracking > 50 ? 'Good' : 'Adjust'}           ║
+╚════════════════════════════╝`;
+            },
+
+            mall: () => {
+                return `🏬 ＶＩＲＴＵＡＬ  ＭＡＬＬ  ＤＩＲＥＣＴＯＲＹ 🏬
+
+Floor 3:
+  🎮 Arcade Zone
+  📼 Media World
+  🍜 Food Court
+
+Floor 2:
+  👕 Fashion District
+  💿 Music Store
+  📚 Bookstore
+
+Floor 1:
+  🌴 Atrium (Palm Trees)
+  ⛲ Fountain Plaza
+  🎵 Muzak Central
+
+Now Playing: Smooth Jazz Elevator Mix Vol. 4
+Vibe: Peak 90's Nostalgia`;
+            },
+
+            status: () => {
+                return `✦ ＳＹＳＴＥＭ  ＳＴＡＴＵＳ ✦
+
+Aesthetic Level:    ▓▓▓▓▓▓▓▓▓▓ 100%
+Vaporwave Vibes:    ▓▓▓▓▓▓▓▓▓░  95%
+Nostalgia Factor:   ▓▓▓▓▓▓▓▓░░  85%
+Chill Mode:         ▓▓▓▓▓▓▓▓▓▓ MAX
+Retro Energy:       ▓▓▓▓▓▓▓▓▓░  90%
+
+Background Music: ✓ Playing
+Palm Trees: ✓ Swaying
+Sunset: ✓ Eternal
+Grid: ✓ Scrolling
+
+All systems: ＡＥＳＴＨＥＴＩＣ ✓`;
+            },
+
+            time: () => {
+                const now = new Date();
+                const hours = now.getHours();
+                const mins = String(now.getMinutes()).padStart(2, '0');
+                const secs = String(now.getSeconds()).padStart(2, '0');
+
+                return `╔═══════════════════════════╗
+║  ＤＩＧＩＴＡＬ  ＣＬＯＣＫ    ║
+╠═══════════════════════════╣
+║                           ║
+║     ${hours}:${mins}:${secs}         ║
+║                           ║
+║   ${now.toLocaleDateString('en-US', {weekday: 'long'})}          ║
+║                           ║
+╚═══════════════════════════╝
+
+Time Zone: Aesthetic Standard Time
+Mood: ${hours < 6 || hours > 20 ? 'Midnight Vibes' : hours < 12 ? 'Morning Chill' : hours < 18 ? 'Afternoon Relax' : 'Evening Glow'}`;
+            },
+
+            weather: () => {
+                const conditions = [
+                    '🌅 Eternal Sunset',
+                    '🌃 Neon Rain',
+                    '🌆 Purple Haze',
+                    '🌸 Cherry Blossoms',
+                    '🌊 Ocean Breeze'
+                ];
+
+                return `✦ ＡＥＳＴＨＥＴＩＣ  ＷＥＡＴＨＥＲ ✦
+
+Condition: ${conditions[Math.floor(Math.random() * conditions.length)]}
+Temperature: ${Math.floor(Math.random() * 10 + 20)}°C (Perfect)
+Humidity: ${Math.floor(Math.random() * 30 + 50)}%
+Vibe Quality: Immaculate
+
+🌴 Palm trees: Gently swaying
+💜 Sky color: Pink/Purple gradient
+✨ Aesthetic level: Maximum
+
+Forecast: Eternal summer evening`;
+            },
+
+            quote: () => {
+                const quotes = [
+                    '"Ｌｉｖｅ  ｉｎ  ｔｈｅ  ｍｏｍｅｎｔ"',
+                    '"Ｅｍｂｒａｃｅ  ｔｈｅ  ｖｉｂｅｓ"',
+                    '"Ｒｅｌａｘ，  ｙｏｕ＇ｒｅ  ｅｘａｃｔｌｙ  ｗｈｅｒｅ  ｙｏｕ  ｎｅｅｄ  ｔｏ  ｂｅ"',
+                    '"Ｎｏｓｔａｌｇｉａ  ｉｓ  ａ  ｆｅｅｌｉｎｇ，  ｎｏｔ  ａ  ｔｉｍｅ"',
+                    '"Ｌｅｔ  ｔｈｅ  ｗａｖｅｓ  ｗａｓｈ  ｏｖｅｒ  ｙｏｕ"',
+                    '"Ｆｉｎｄ  ｂｅａｕｔｙ  ｉｎ  ｔｈｅ  ｍｕｎｄａｎｅ"'
+                ];
+
+                return `
+  ～～～～～～～～～～～～～～～～～～～
+
+    ${quotes[Math.floor(Math.random() * quotes.length)]}
+
+  ～～～～～～～～～～～～～～～～～～～
+
+            ♪ ａｅｓｔｈｅｔｉｃ ♪`;
+            },
+
+            drink: () => {
+                return `🍹 ＶＩＲＴＵＡＬ  ＤＲＩＮＫ  ＭＥＮＵ 🍹
+
+┌─────────────────────────────┐
+│  ☆ Neon Sunrise       ¥500  │
+│  ☆ Cyber Smoothie     ¥450  │
+│  ☆ Vapor Cola         ¥300  │
+│  ☆ Dream Juice        ¥400  │
+│  ☆ Retro Lemonade     ¥350  │
+│  ☆ Purple Haze Tea    ¥250  │
+└─────────────────────────────┘
+
+All drinks come with:
+✓ Maximum chill
+✓ Aesthetic vibes
+✓ Nostalgia boost
+
+Special: Happy Hour = Always`;
+            },
+
+            city: () => {
+                return `🌃 ＣＹＢＥＲ  ＣＩＴＹ  ＴＯＵＲ 🌃
+
+    ▓▓▓▓  ▓▓  ▓▓▓  ▓▓▓▓▓
+    ▓▓▓  ▓▓▓  ▓▓  ▓▓▓▓▓▓
+    ▓▓  ▓▓▓▓  ▓  ▓▓▓▓▓▓▓
+    ▓  ▓▓▓▓▓    ▓▓▓▓▓▓▓▓
+      ▓▓▓▓▓▓   ▓▓▓▓▓▓▓▓▓
+
+Welcome to Neo-Tokyo
+Population: ∞
+Time: Eternal Night
+Weather: Neon Rain
+
+Points of Interest:
+  🏢 Corporate Towers
+  🎮 Arcade District
+  🍜 Ramen Street
+  🌸 Cherry Blossom Park
+  🎵 Synthwave Club`;
+            },
+
+            dream: () => {
+                return `✧･ﾟ: *✧･ﾟ:* ＤＲＥＡＭ  ＳＥＱＵＥＮＣＥ *:･ﾟ✧*:･ﾟ✧
+
+    Initializing dream protocol...
+
+    ░▒▓█  You are floating  █▓▒░
+
+    Pink clouds surround you
+    Synthesizer music plays
+    Palm trees sway in slow motion
+    The sunset never ends
+
+    You feel...
+    ✓ Peaceful
+    ✓ Nostalgic
+    ✓ Content
+    ✓ Infinite
+
+    The vaporwave flows through you
+
+    ░▒▓█  This is perfect  █▓▒░
+
+✧･ﾟ: *✧･ﾟ:* Dream complete *:･ﾟ✧*:･ﾟ✧`;
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`≫ ${cmd}`, 'cyan');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'white');
+                } else if (cmd) {
+                    addOutput(`✗ Command not found: ${command}\nType 'help' for available commands.`, 'yellow');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('✦ ＩＮＩＴＩＡＬＩＺＩＮＧ  ＡＥＳＴＨＥＴＩＣ  ＭＯＤＥ ✦', 'purple');
+        addOutput('', '');
+        addOutput('Loading vaporwave protocols...', 'cyan');
+        addOutput('Calibrating sunset parameters...', 'cyan');
+        addOutput('Engaging chill mode...', 'cyan');
+        addOutput('', '');
+        addOutput('✓ System ready', 'purple');
+        addOutput('', '');
+        addOutput('Welcome to the Ａ Ｅ Ｓ Ｔ Ｈ Ｅ Ｔ Ｉ Ｃ zone', 'white');
+        addOutput('Type "help" for commands or "relax" to begin your journey', 'white');
+        addOutput('', '');
+        addOutput('♪ ～ Ｅｎｊｏｙ  ｔｈｅ  ｖｉｂｅｓ ～ ♪', 'cyan');
+        addOutput('', '');
+    </script>
+</body>
+</html>

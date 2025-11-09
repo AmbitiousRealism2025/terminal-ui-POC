@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Amber CRT Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #ffb000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .crt-container {
+            width: 850px;
+            height: 600px;
+            background: #0f0f0f;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 0 80px rgba(255, 176, 0, 0.3);
+            position: relative;
+        }
+        .terminal {
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            padding: 25px;
+            overflow-y: auto;
+            position: relative;
+            border-radius: 5px;
+            box-shadow: inset 0 0 100px rgba(255, 176, 0, 0.1);
+        }
+        .terminal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(255, 176, 0, 0.05) 0px,
+                transparent 1px,
+                transparent 2px,
+                rgba(255, 176, 0, 0.05) 3px
+            );
+            pointer-events: none;
+            animation: scanline 6s linear infinite;
+        }
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100%); }
+        }
+        .terminal::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 0%,
+                rgba(0, 0, 0, 0.3) 100%
+            );
+            pointer-events: none;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #ffb000;
+            text-shadow:
+                0 0 5px #ffb000,
+                0 0 10px #ff8800;
+            animation: phosphorGlow 0.3s ease-in;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+        }
+        @keyframes phosphorGlow {
+            0% {
+                opacity: 0;
+                text-shadow: 0 0 20px #ffb000;
+            }
+            100% {
+                opacity: 1;
+                text-shadow:
+                    0 0 5px #ffb000,
+                    0 0 10px #ff8800;
+            }
+        }
+        .output.dim {
+            color: #cc8800;
+            text-shadow: 0 0 3px #cc8800;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+        }
+        .prompt {
+            color: #ffb000;
+            margin-right: 8px;
+            text-shadow:
+                0 0 5px #ffb000,
+                0 0 10px #ff8800;
+            font-weight: bold;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ffb000;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow:
+                0 0 5px #ffb000,
+                0 0 10px #ff8800;
+            letter-spacing: 0.5px;
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background-color: #ffb000;
+            animation: crtBlink 0.7s infinite;
+            box-shadow: 0 0 10px #ffb000;
+        }
+        @keyframes crtBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .flicker {
+            animation: flicker 0.15s infinite;
+        }
+        @keyframes flicker {
+            0% { opacity: 0.95; }
+            50% { opacity: 1; }
+            100% { opacity: 0.97; }
+        }
+        .boot-text {
+            color: #ffb000;
+            text-shadow: 0 0 5px #ffb000;
+            font-weight: bold;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ffb000;
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-container">
+        <div class="terminal flicker">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">$</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: 'AVAILABLE COMMANDS:\n\n' +
+                  '  help      - Display this help screen\n' +
+                  '  about     - System information\n' +
+                  '  ls        - List directory contents\n' +
+                  '  cat       - Display file contents\n' +
+                  '  whoami    - Display current user\n' +
+                  '  uptime    - Show system uptime\n' +
+                  '  date      - Display current date/time\n' +
+                  '  fortune   - Display random fortune\n' +
+                  '  banner    - Display ASCII banner\n' +
+                  '  clear     - Clear screen',
+
+            about: '╔════════════════════════════════════════╗\n' +
+                   '║   UNIX System V Release 4.0            ║\n' +
+                   '║   Amber Phosphor Display Terminal      ║\n' +
+                   '║   Copyright (c) 1985-1989              ║\n' +
+                   '╚════════════════════════════════════════╝\n\n' +
+                   'Terminal: VT220\n' +
+                   'Display:  Amber CRT Monitor\n' +
+                   'Memory:   640K RAM\n' +
+                   'CPU:      Intel 80386',
+
+            ls: () => {
+                return 'total 48\n' +
+                       'drwxr-xr-x  12 root  wheel   384 Nov  9 1989 .\n' +
+                       'drwxr-xr-x   8 root  wheel   256 Oct 15 1989 ..\n' +
+                       '-rw-r--r--   1 user  staff  1024 Nov  9 1989 README.txt\n' +
+                       '-rwxr-xr-x   1 user  staff  2048 Nov  8 1989 boot.sh\n' +
+                       '-rw-r--r--   1 user  staff   512 Nov  7 1989 config.sys\n' +
+                       'drwxr-xr-x   4 user  staff   128 Nov  5 1989 docs\n' +
+                       '-rwxr-xr-x   1 user  staff  4096 Nov  9 1989 program.exe\n' +
+                       'drwxr-xr-x   3 user  staff    96 Nov  1 1989 src';
+            },
+
+            cat: (args) => {
+                if (!args[0]) return 'cat: missing file operand\nTry \'help\' for more information.';
+                const files = {
+                    'README.txt': '╔═══════════════════════════════════════════╗\n' +
+                                  '║     WELCOME TO THE AMBER TERMINAL        ║\n' +
+                                  '╚═══════════════════════════════════════════╝\n\n' +
+                                  'This is a retro CRT terminal emulator.\n' +
+                                  'Experience computing from the 1980s.\n\n' +
+                                  'Type "help" for available commands.\n' +
+                                  'Type "fortune" for wisdom.\n\n' +
+                                  '- The Management',
+                    'config.sys': 'DEVICE=HIMEM.SYS\n' +
+                                  'DEVICE=EMM386.EXE\n' +
+                                  'FILES=30\n' +
+                                  'BUFFERS=20\n' +
+                                  'STACKS=9,256'
+                };
+                return files[args[0]] || `cat: ${args[0]}: No such file or directory`;
+            },
+
+            whoami: 'root',
+
+            uptime: () => {
+                const days = Math.floor(Math.random() * 365 + 30);
+                const hours = Math.floor(Math.random() * 24);
+                const mins = Math.floor(Math.random() * 60);
+                return `System uptime: ${days} days, ${hours} hours, ${mins} minutes\n` +
+                       `Load average: 0.${Math.floor(Math.random() * 50)}, 0.${Math.floor(Math.random() * 50)}, 0.${Math.floor(Math.random() * 50)}`;
+            },
+
+            date: () => new Date().toLocaleString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            }),
+
+            fortune: () => {
+                const fortunes = [
+                    'The best way to predict the future is to invent it.',
+                    'A computer terminal is a window into another world.',
+                    'In the land of the blind, the one-eyed man is king.',
+                    'Those who can imagine anything, can create the impossible.',
+                    'The phosphor glow of knowledge illuminates the darkness.',
+                    'Time flies like an arrow; fruit flies like a banana.',
+                    'Real programmers use terminals, not mice.',
+                    'To err is human; to really foul things up requires a computer.'
+                ];
+                return fortunes[Math.floor(Math.random() * fortunes.length)];
+            },
+
+            banner: '    ___    __  _______  __________ \n' +
+                    '   /   |  /  |/  / __ )/ ____/ __ \\\n' +
+                    '  / /| | / /|_/ / __  / __/ / /_/ /\n' +
+                    ' / ___ |/ /  / / /_/ / /___/ _, _/ \n' +
+                    '/_/  |_/_/  /_/_____/_____/_/ |_|  \n' +
+                    '                                    \n' +
+                    '    TERMINAL SYSTEM v1.0            ',
+
+            clear: () => { output.innerHTML = ''; return ''; },
+
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`$ ${cmd}`);
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'dim');
+                } else if (cmd) {
+                    addOutput(`bash: ${command}: command not found`, 'dim');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('', 'boot-text');
+        addOutput('BIOS Version 2.10', 'boot-text');
+        addOutput('Copyright (C) 1985, Phoenix Technologies Ltd.', 'boot-text');
+        addOutput('', 'boot-text');
+        addOutput('Main Processor: Intel 80386', 'boot-text');
+        addOutput('Memory Test: 640K OK', 'boot-text');
+        addOutput('', 'boot-text');
+        addOutput('Loading UNIX System V...', 'boot-text');
+        addOutput('', 'boot-text');
+        addOutput('╔═══════════════════════════════════════════╗', 'boot-text');
+        addOutput('║  Welcome to Amber CRT Terminal System    ║', 'boot-text');
+        addOutput('║  Type "help" for available commands      ║', 'boot-text');
+        addOutput('╚═══════════════════════════════════════════╝', 'boot-text');
+        addOutput('');
+    </script>
+</body>
+</html>

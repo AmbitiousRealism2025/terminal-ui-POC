@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Terminal IDE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .ide-container {
+            width: 1200px;
+            height: 750px;
+            background: #252526;
+            border: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        .title-bar {
+            height: 35px;
+            background: #3c3c3c;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            border-bottom: 1px solid #2d2d30;
+        }
+        .menu {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #cccccc;
+        }
+        .menu-item {
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 3px;
+        }
+        .menu-item:hover {
+            background: #505050;
+        }
+        .tab-bar {
+            height: 35px;
+            background: #2d2d2d;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #1e1e1e;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 8px 15px;
+            background: #2d2d2d;
+            border-right: 1px solid #1e1e1e;
+            font-size: 13px;
+            color: #969696;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab.active {
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+        .tab-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            overflow-y: auto;
+        }
+        .sidebar::-webkit-scrollbar {
+            width: 10px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #252526;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+        .sidebar-section {
+            padding: 10px;
+        }
+        .section-title {
+            color: #cccccc;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .file-tree {
+            font-size: 13px;
+        }
+        .file-item {
+            padding: 4px 8px;
+            color: #cccccc;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+        .file-item:hover {
+            background: #2a2d2e;
+        }
+        .file-item.folder {
+            color: #c5c5c5;
+            font-weight: 500;
+        }
+        .file-item.indent {
+            padding-left: 24px;
+        }
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .editor-area {
+            flex: 1;
+            background: #1e1e1e;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .editor-area::-webkit-scrollbar {
+            width: 10px;
+        }
+        .editor-area::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        .editor-area::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+        .terminal-panel {
+            height: 250px;
+            background: #1e1e1e;
+            border-top: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            height: 35px;
+            background: #252526;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 1px solid #3e3e42;
+            font-size: 13px;
+            color: #cccccc;
+            font-weight: 500;
+        }
+        .terminal-content {
+            flex: 1;
+            padding: 10px 15px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .terminal-content::-webkit-scrollbar {
+            width: 10px;
+        }
+        .terminal-content::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        .terminal-content::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #d4d4d4;
+            animation: slideIn 0.2s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .output.error {
+            color: #f48771;
+        }
+        .output.success {
+            color: #89d185;
+        }
+        .output.warning {
+            color: #e5c07b;
+        }
+        .output.info {
+            color: #61afef;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 5px;
+        }
+        .prompt {
+            color: #89d185;
+            margin-right: 8px;
+            font-weight: 600;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #d4d4d4;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            outline: none;
+            flex-grow: 1;
+        }
+        .status-bar {
+            height: 22px;
+            background: #007acc;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            font-size: 12px;
+            color: #ffffff;
+        }
+        .status-left, .status-right {
+            display: flex;
+            gap: 15px;
+        }
+        .code-keyword { color: #c586c0; }
+        .code-string { color: #ce9178; }
+        .code-function { color: #dcdcaa; }
+        .code-comment { color: #6a9955; font-style: italic; }
+        .code-number { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <div class="ide-container">
+        <div class="title-bar">
+            <div class="menu">
+                <div class="menu-item">File</div>
+                <div class="menu-item">Edit</div>
+                <div class="menu-item">View</div>
+                <div class="menu-item">Terminal</div>
+                <div class="menu-item">Help</div>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <div class="tab active">
+                <span class="tab-icon">📄</span>
+                <span>terminal.js</span>
+            </div>
+            <div class="tab">
+                <span class="tab-icon">📄</span>
+                <span>package.json</span>
+            </div>
+            <div class="tab">
+                <span class="tab-icon">📄</span>
+                <span>README.md</span>
+            </div>
+        </div>
+
+        <div class="main-container">
+            <div class="sidebar">
+                <div class="sidebar-section">
+                    <div class="section-title">Explorer</div>
+                    <div class="file-tree">
+                        <div class="file-item folder">📁 project-root</div>
+                        <div class="file-item indent folder">📁 src</div>
+                        <div class="file-item indent indent">📄 terminal.js</div>
+                        <div class="file-item indent indent">📄 commands.js</div>
+                        <div class="file-item indent indent">📄 utils.js</div>
+                        <div class="file-item indent folder">📁 styles</div>
+                        <div class="file-item indent indent">📄 main.css</div>
+                        <div class="file-item indent folder">📁 tests</div>
+                        <div class="file-item indent indent">📄 terminal.test.js</div>
+                        <div class="file-item indent">📄 package.json</div>
+                        <div class="file-item indent">📄 README.md</div>
+                        <div class="file-item indent">📄 .gitignore</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="editor-area">
+                    <div><span class="code-comment">// terminal.js - Developer Terminal Interface</span></div>
+                    <div><span class="code-keyword">const</span> <span class="code-function">initTerminal</span> = () => {</div>
+                    <div>  <span class="code-keyword">const</span> commands = {</div>
+                    <div>    <span class="code-string">'help'</span>: <span class="code-function">showHelp</span>,</div>
+                    <div>    <span class="code-string">'build'</span>: <span class="code-function">buildProject</span>,</div>
+                    <div>    <span class="code-string">'test'</span>: <span class="code-function">runTests</span>,</div>
+                    <div>    <span class="code-string">'deploy'</span>: <span class="code-function">deployApp</span></div>
+                    <div>  };</div>
+                    <div></div>
+                    <div>  <span class="code-comment">// Process user input</span></div>
+                    <div>  <span class="code-keyword">return</span> {</div>
+                    <div>    execute: (cmd) => commands[cmd]?.()</div>
+                    <div>  };</div>
+                    <div>};</div>
+                </div>
+
+                <div class="terminal-panel">
+                    <div class="panel-header">TERMINAL</div>
+                    <div class="terminal-content">
+                        <div id="output"></div>
+                        <div class="input-line">
+                            <span class="prompt">$</span>
+                            <input type="text" id="input" autofocus>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-left">
+                <span>⚡ Dev Terminal</span>
+                <span>UTF-8</span>
+                <span>JavaScript</span>
+            </div>
+            <div class="status-right">
+                <span>Ln 1, Col 1</span>
+                <span>Spaces: 2</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return 'AVAILABLE COMMANDS:\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       '  help      - Show this help message\n' +
+                       '  build     - Build the project\n' +
+                       '  test      - Run test suite\n' +
+                       '  deploy    - Deploy to production\n' +
+                       '  lint      - Run linter\n' +
+                       '  format    - Format code\n' +
+                       '  git       - Git operations\n' +
+                       '  npm       - NPM commands\n' +
+                       '  serve     - Start dev server\n' +
+                       '  clear     - Clear terminal\n' +
+                       '  echo      - Echo message';
+            },
+            build: () => {
+                return '🔨 Building project...\n\n' +
+                       '  ⚙️  Compiling TypeScript...\n' +
+                       '  ✓  src/terminal.js\n' +
+                       '  ✓  src/commands.js\n' +
+                       '  ✓  src/utils.js\n\n' +
+                       '  📦 Bundling assets...\n' +
+                       '  ✓  styles/main.css\n' +
+                       '  ✓  Creating minified bundle\n\n' +
+                       '✅ Build completed successfully!\n' +
+                       '   Output: dist/bundle.js (234 KB)';
+            },
+            test: () => {
+                const tests = [
+                    'Terminal initialization',
+                    'Command parsing',
+                    'Output rendering',
+                    'Input validation',
+                    'History management'
+                ];
+                let result = '🧪 Running test suite...\n\n';
+                tests.forEach(test => {
+                    const passed = Math.random() > 0.1;
+                    result += `  ${passed ? '✓' : '✗'} ${test}\n`;
+                });
+                result += `\n✅ All tests passed! (${tests.length}/${tests.length})`;
+                return result;
+            },
+            deploy: () => {
+                return '🚀 Deploying to production...\n\n' +
+                       '  ✓  Running pre-deploy checks\n' +
+                       '  ✓  Building production bundle\n' +
+                       '  ✓  Minifying assets\n' +
+                       '  ✓  Uploading to server\n' +
+                       '  ✓  Updating DNS records\n' +
+                       '  ✓  Clearing CDN cache\n\n' +
+                       '✅ Deployment successful!\n' +
+                       '   URL: https://app.example.com';
+            },
+            lint: () => {
+                return '🔍 Running ESLint...\n\n' +
+                       '  Checking 15 files...\n' +
+                       '  ✓  src/terminal.js\n' +
+                       '  ✓  src/commands.js\n' +
+                       '  ⚠️  src/utils.js (1 warning)\n' +
+                       '     Line 42: Unused variable "temp"\n\n' +
+                       '✅ Linting complete: 0 errors, 1 warning';
+            },
+            format: () => {
+                return '✨ Formatting code with Prettier...\n\n' +
+                       '  Formatted 15 files in 0.8s\n' +
+                       '  ✓  All files formatted successfully';
+            },
+            git: (args) => {
+                if (!args.length) {
+                    return 'Git commands: status, log, branch\n' +
+                           'Usage: git <command>';
+                }
+                if (args[0] === 'status') {
+                    return 'On branch main\n' +
+                           'Your branch is up to date with \'origin/main\'.\n\n' +
+                           'Changes not staged for commit:\n' +
+                           '  modified:   src/terminal.js\n' +
+                           '  modified:   README.md';
+                }
+                if (args[0] === 'log') {
+                    return 'commit abc123 (HEAD -> main)\n' +
+                           'Author: Developer <dev@example.com>\n' +
+                           'Date:   Mon Nov 9 10:30:00 2025\n\n' +
+                           '    Add terminal features\n\n' +
+                           'commit def456\n' +
+                           'Author: Developer <dev@example.com>\n' +
+                           'Date:   Sun Nov 8 15:20:00 2025\n\n' +
+                           '    Initial commit';
+                }
+                return `Git ${args[0]}: Not implemented in demo`;
+            },
+            npm: (args) => {
+                if (!args.length) {
+                    return 'NPM commands: install, run, test\n' +
+                           'Usage: npm <command>';
+                }
+                if (args[0] === 'install') {
+                    return '📦 Installing dependencies...\n\n' +
+                           '  ✓  react@18.2.0\n' +
+                           '  ✓  webpack@5.88.0\n' +
+                           '  ✓  eslint@8.45.0\n\n' +
+                           'Added 342 packages in 12.5s';
+                }
+                return `npm ${args[0]}: Not implemented in demo`;
+            },
+            serve: () => {
+                return '🌐 Starting development server...\n\n' +
+                       '  ✓  Webpack compiled successfully\n' +
+                       '  ✓  Server running at:\n' +
+                       '     http://localhost:3000\n\n' +
+                       '  Watching for file changes...';
+            },
+            clear: () => {
+                output.innerHTML = '';
+                return '';
+            },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`$ ${cmd}`, 'info');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result);
+                } else if (cmd) {
+                    addOutput(`Command not found: ${command}`, 'error');
+                    addOutput('Type "help" for available commands', 'warning');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Initial messages
+        addOutput('Developer Terminal IDE v1.0.0', 'success');
+        addOutput('Node.js v18.17.0 | npm v9.6.7', 'info');
+        addOutput('');
+        addOutput('Type "help" for available commands.', 'info');
+    </script>
+</body>
+</html>

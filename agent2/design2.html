@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glitch Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000000;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .glitch-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #ff0000 0%, #00ff00 50%, #0000ff 100%);
+            opacity: 0.05;
+            animation: bgGlitch 8s infinite;
+        }
+        @keyframes bgGlitch {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(-5px, 5px) scale(1.01); }
+            50% { transform: translate(5px, -5px) scale(0.99); }
+            75% { transform: translate(-3px, -3px) scale(1.02); }
+        }
+        .terminal {
+            width: 900px;
+            height: 650px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #ffffff;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+            animation: terminalGlitch 5s infinite;
+        }
+        @keyframes terminalGlitch {
+            0%, 90%, 100% {
+                border-color: #ffffff;
+                box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            }
+            91% {
+                border-color: #ff0000;
+                box-shadow:
+                    -5px 0 0 #ff0000,
+                    5px 0 0 #00ffff;
+            }
+            92% {
+                border-color: #00ff00;
+                box-shadow:
+                    -3px 0 0 #ff00ff,
+                    3px 0 0 #ffff00;
+            }
+            93% {
+                border-color: #ffffff;
+                box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            }
+        }
+        .terminal::before {
+            content: 'GLITCH://TERMINAL/v0.x.x';
+            position: absolute;
+            top: 5px;
+            left: 30px;
+            font-size: 12px;
+            color: #888;
+            animation: headerGlitch 3s infinite;
+        }
+        @keyframes headerGlitch {
+            0%, 94%, 100% {
+                color: #888;
+                text-shadow: none;
+            }
+            95% {
+                color: #ff0000;
+                text-shadow: 2px 0 #00ffff, -2px 0 #ff00ff;
+            }
+            97% {
+                color: #888;
+                text-shadow: none;
+            }
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #ffffff;
+            animation: textAppear 0.2s ease-out;
+            position: relative;
+        }
+        @keyframes textAppear {
+            0% {
+                opacity: 0;
+                transform: translate(-2px, 0);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(0, 0);
+            }
+        }
+        .output.glitch-text {
+            animation: rgbSplit 0.3s ease-out;
+        }
+        @keyframes rgbSplit {
+            0% {
+                text-shadow:
+                    -5px 0 #ff0000,
+                    5px 0 #00ffff;
+            }
+            50% {
+                text-shadow:
+                    -3px 0 #ff00ff,
+                    3px 0 #00ff00;
+            }
+            100% {
+                text-shadow: none;
+            }
+        }
+        .output.error {
+            color: #ff0000;
+            text-shadow: 0 0 5px #ff0000;
+        }
+        .output.success {
+            color: #00ff00;
+            text-shadow: 0 0 5px #00ff00;
+        }
+        .output.warning {
+            color: #ffff00;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+        }
+        .prompt {
+            color: #00ffff;
+            margin-right: 10px;
+            animation: promptGlitch 4s infinite;
+        }
+        @keyframes promptGlitch {
+            0%, 96%, 100% {
+                text-shadow: none;
+            }
+            97% {
+                text-shadow:
+                    2px 0 #ff0000,
+                    -2px 0 #00ff00;
+            }
+            98% {
+                text-shadow: none;
+            }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            outline: none;
+            flex-grow: 1;
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background-color: #ffffff;
+            animation: cursorBlink 0.8s infinite;
+        }
+        @keyframes cursorBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .corrupted {
+            animation: corrupt 0.5s ease-out;
+        }
+        @keyframes corrupt {
+            0% {
+                transform: translate(0);
+                filter: none;
+            }
+            10% {
+                transform: translate(-10px, 5px);
+                filter: hue-rotate(90deg);
+            }
+            20% {
+                transform: translate(10px, -5px);
+                filter: hue-rotate(180deg);
+            }
+            30% {
+                transform: translate(-5px, -5px);
+                filter: hue-rotate(270deg);
+            }
+            40% {
+                transform: translate(5px, 5px);
+                filter: hue-rotate(360deg);
+            }
+            50% {
+                transform: translate(0);
+                filter: none;
+            }
+        }
+        .data-block {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            margin: 0 2px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            z-index: 100;
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAG1BMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACj6n/tAAAACHRSTlMADQ4RExQVdXxvX1gAAADGSURBVDjLY2AYBaNgFAwCoG5gYGBkYGBQYGBIYGBQAAIGBgYFBQUGBgYGBQYGhQIGBgYGBgYGBQUGhgQGBgYGBgYGBQUGBgYGBgUFBgYGBgYGBQUGBgYGBgYGBQUGBgYGBgYFBQYGBgYGBgYFBQYGBgYGBgYFBQYGBgYGBQYGBQUGBgYGBgYGBQUGBgYGBgUFBgYGBgYGBQUGBgYGBgYGBQUGBgYGBgYFBQYGBgYGBQYGBQUGBgYGBgYGBQUGBgYGBgYGBQAA//8DAwAH7gNbAAAAAElFTkSuQmCC');
+            animation: noise 0.3s infinite;
+        }
+        @keyframes noise {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-5%, -5%); }
+            20% { transform: translate(-10%, 5%); }
+            30% { transform: translate(5%, -10%); }
+            40% { transform: translate(-5%, 15%); }
+            50% { transform: translate(-10%, 5%); }
+            60% { transform: translate(15%, 0); }
+            70% { transform: translate(0, 10%); }
+            80% { transform: translate(-15%, 0); }
+            90% { transform: translate(10%, 5%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="glitch-bg"></div>
+    <div class="noise"></div>
+    <div class="terminal">
+        <div id="output"></div>
+        <div class="input-line">
+            <span class="prompt">~$</span>
+            <input type="text" id="input" autofocus>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: '╔════════════════════════════════════════╗\n' +
+                  '║         GLITCH TERMINAL HELP           ║\n' +
+                  '╚════════════════════════════════════════╝\n\n' +
+                  '  help      - Show this message\n' +
+                  '  glitch    - Trigger glitch effect\n' +
+                  '  corrupt   - Data corruption simulation\n' +
+                  '  status    - System status\n' +
+                  '  scan      - Scan for anomalies\n' +
+                  '  reboot    - Reboot system\n' +
+                  '  matrix    - Enter the matrix\n' +
+                  '  echo      - Echo message\n' +
+                  '  clear     - Clear terminal',
+
+            glitch: () => {
+                const terminal = document.querySelector('.terminal');
+                terminal.classList.add('corrupted');
+                setTimeout(() => terminal.classList.remove('corrupted'), 500);
+                return '█████ GLITCH TRIGGERED █████\n' +
+                       '▓▓▓▓▓ REALITY DISTORTION ▓▓▓▓▓\n' +
+                       '▒▒▒▒▒ SIGNAL INTERFERENCE ▒▒▒▒▒\n' +
+                       '░░░░░ NORMALIZING... ░░░░░';
+            },
+
+            corrupt: () => {
+                const chars = '█▓▒░!@#$%^&*()';
+                let corruptedText = '';
+                for (let i = 0; i < 60; i++) {
+                    corruptedText += chars[Math.floor(Math.random() * chars.length)];
+                }
+                return 'CORRUPTING DATA STREAM...\n\n' +
+                       corruptedText + '\n\n' +
+                       'ERROR: Data integrity compromised\n' +
+                       'Attempting recovery...\n' +
+                       '[████████████████████] 100%\n' +
+                       'Recovery complete.';
+            },
+
+            status: () => {
+                const statuses = ['CRITICAL', 'WARNING', 'UNSTABLE', 'NOMINAL'];
+                const status = statuses[Math.floor(Math.random() * statuses.length)];
+                return '╔════════ SYSTEM STATUS ════════╗\n' +
+                       '║                                ║\n' +
+                       `║  Status: ${status.padEnd(22)}║\n` +
+                       `║  Memory: ${Math.floor(Math.random() * 100)}% corrupted         ║\n` +
+                       `║  Glitch Level: ${Math.floor(Math.random() * 10)}/10         ║\n` +
+                       '║  Reality Index: 0.${Math.floor(Math.random() * 1000)}    ║\n' +
+                       '║                                ║\n' +
+                       '╚════════════════════════════════╝';
+            },
+
+            scan: () => {
+                const anomalies = [
+                    '[▓▓▓░░] Temporal anomaly detected at 0x${Math.floor(Math.random() * 16777215).toString(16)}',
+                    '[████░] Reality breach in sector ${Math.floor(Math.random() * 100)}',
+                    '[██░░░] Signal degradation: ${Math.floor(Math.random() * 100)}%',
+                    '[▓▓▓▓▓] Dimensional instability detected',
+                    '[░░░░░] Quantum fluctuation observed'
+                ];
+                return 'SCANNING FOR ANOMALIES...\n\n' +
+                       anomalies.slice(0, 3).map(a => eval('`' + a + '`')).join('\n') +
+                       '\n\nScan complete.';
+            },
+
+            reboot: () => {
+                output.innerHTML = '';
+                setTimeout(() => {
+                    addOutput('INITIATING REBOOT SEQUENCE...', 'warning');
+                    setTimeout(() => {
+                        addOutput('[ OK ] Stopping glitch services', 'success');
+                        setTimeout(() => {
+                            addOutput('[ OK ] Clearing corrupted memory', 'success');
+                            setTimeout(() => {
+                                addOutput('[ OK ] Reinitializing reality matrix', 'success');
+                                setTimeout(() => {
+                                    addOutput('\nSYSTEM ONLINE', 'success');
+                                    addOutput('Type "help" for commands.');
+                                }, 300);
+                            }, 300);
+                        }, 300);
+                    }, 300);
+                }, 100);
+                return '';
+            },
+
+            matrix: () => {
+                return '01001101 01000001 01010100 01010010 01001001 01011000\n\n' +
+                       'The Matrix has you...\n' +
+                       'Follow the white rabbit.\n\n' +
+                       'Knock, knock, Neo.';
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`~$ ${cmd}`);
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) {
+                        const className = command === 'glitch' ? 'glitch-text' :
+                                        command === 'corrupt' ? 'error' : '';
+                        addOutput(result, className);
+                    }
+                } else if (cmd) {
+                    addOutput(`ERROR: Command "${command}" not found`, 'error');
+                    addOutput('Type "help" for available commands.');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Startup sequence
+        addOutput('╔══════════════════════════════════════════╗', 'glitch-text');
+        addOutput('║   G L I T C H   T E R M I N A L          ║', 'glitch-text');
+        addOutput('║   Reality v0.x.x - Unstable Build       ║', 'glitch-text');
+        addOutput('╚══════════════════════════════════════════╝', 'glitch-text');
+        addOutput('');
+        addOutput('WARNING: System integrity compromised', 'warning');
+        addOutput('Glitch effects enabled. Proceed with caution.', 'warning');
+        addOutput('');
+        addOutput('Type "help" for available commands.');
+        addOutput('');
+    </script>
+</body>
+</html>

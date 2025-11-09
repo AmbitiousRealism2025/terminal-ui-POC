@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .floating-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+        .shape:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, #ff6b9d, #c06bff);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        .shape:nth-child(2) {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(45deg, #00d4ff, #00aaff);
+            top: 60%;
+            left: 70%;
+            animation-delay: -7s;
+        }
+        .shape:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(45deg, #ffd700, #ffaa00);
+            top: 40%;
+            left: 30%;
+            animation-delay: -14s;
+        }
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(50px, -50px) scale(1.1);
+            }
+            66% {
+                transform: translate(-30px, 30px) scale(0.9);
+            }
+        }
+        .terminal-container {
+            width: 880px;
+            height: 620px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 0;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow:
+                0 8px 32px 0 rgba(31, 38, 135, 0.37),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        .terminal-container:hover {
+            transform: translateY(-5px);
+            box-shadow:
+                0 12px 40px 0 rgba(31, 38, 135, 0.5),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+        }
+        .title-bar {
+            height: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            backdrop-filter: blur(10px);
+        }
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .control {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .control:hover {
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(1.1);
+        }
+        .control.close { background: rgba(255, 95, 86, 0.8); }
+        .control.minimize { background: rgba(255, 189, 46, 0.8); }
+        .control.maximize { background: rgba(39, 201, 63, 0.8); }
+        .title {
+            flex-grow: 1;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .terminal {
+            height: 570px;
+            padding: 25px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        .terminal::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.95);
+            animation: slideInGlass 0.3s ease-out;
+        }
+        @keyframes slideInGlass {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .output.info {
+            color: rgba(100, 200, 255, 1);
+        }
+        .output.success {
+            color: rgba(100, 255, 150, 1);
+        }
+        .output.warning {
+            color: rgba(255, 200, 100, 1);
+        }
+        .output.error {
+            color: rgba(255, 100, 120, 1);
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .badge.info { background: rgba(100, 200, 255, 0.2); border-color: rgba(100, 200, 255, 0.3); }
+        .badge.success { background: rgba(100, 255, 150, 0.2); border-color: rgba(100, 255, 150, 0.3); }
+        .badge.warning { background: rgba(255, 200, 100, 0.2); border-color: rgba(255, 200, 100, 0.3); }
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .prompt {
+            color: rgba(255, 255, 255, 0.9);
+            margin-right: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .prompt::before {
+            content: '❯';
+            color: rgba(150, 150, 255, 1);
+            font-size: 18px;
+        }
+        #input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            padding: 8px 12px;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+        #input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+        #input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.8);
+            animation: glassBlink 1.2s infinite;
+            margin-left: 2px;
+        }
+        @keyframes glassBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            backdrop-filter: blur(10px);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, rgba(100, 200, 255, 0.8), rgba(150, 100, 255, 0.8));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    <div class="terminal-container">
+        <div class="title-bar">
+            <div class="window-controls">
+                <div class="control close"></div>
+                <div class="control minimize"></div>
+                <div class="control maximize"></div>
+            </div>
+            <div class="title">Glass Terminal — Translucent Interface</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="terminal">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">~</span>
+                <input type="text" id="input" placeholder="Type a command..." autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return '<span class="badge info">HELP</span>Available commands:\n\n' +
+                       '  help       Show this help message\n' +
+                       '  about      About this terminal\n' +
+                       '  projects   View active projects\n' +
+                       '  skills     Display skill levels\n' +
+                       '  theme      Change appearance\n' +
+                       '  weather    Check weather (simulated)\n' +
+                       '  stats      System statistics\n' +
+                       '  time       Current time and date\n' +
+                       '  clear      Clear the screen\n' +
+                       '  echo       Echo a message';
+            },
+
+            about: () => {
+                return '<span class="badge info">ABOUT</span>Glass Terminal v2.0\n\n' +
+                       'A modern, translucent terminal interface built with\n' +
+                       'glassmorphism design principles.\n\n' +
+                       'Features:\n' +
+                       '  • Frosted glass effect with blur\n' +
+                       '  • Smooth animations and transitions\n' +
+                       '  • Beautiful gradient backgrounds\n' +
+                       '  • Clean, modern aesthetics\n\n' +
+                       'Designed for elegance and functionality.';
+            },
+
+            projects: () => {
+                return '<span class="badge success">PROJECTS</span>Active Projects:\n\n' +
+                       createProgressBar('Glass UI Framework', 85) +
+                       createProgressBar('Terminal Emulator', 72) +
+                       createProgressBar('Design System', 94) +
+                       createProgressBar('Documentation', 58);
+            },
+
+            skills: () => {
+                return '<span class="badge info">SKILLS</span>Technical Proficiency:\n\n' +
+                       createProgressBar('JavaScript/TypeScript', 92) +
+                       createProgressBar('React & Vue.js', 88) +
+                       createProgressBar('CSS & Design', 95) +
+                       createProgressBar('Node.js & APIs', 85) +
+                       createProgressBar('UI/UX Design', 90);
+            },
+
+            theme: () => {
+                const themes = ['Aurora', 'Sunset', 'Ocean', 'Forest', 'Cosmic'];
+                const theme = themes[Math.floor(Math.random() * themes.length)];
+                return `<span class="badge success">THEME</span>Theme updated to: ${theme}\n\n` +
+                       'Your interface has been refreshed with a new\n' +
+                       'color palette and visual style.';
+            },
+
+            weather: () => {
+                const conditions = ['Clear', 'Partly Cloudy', 'Overcast', 'Light Rain'];
+                const condition = conditions[Math.floor(Math.random() * conditions.length)];
+                const temp = Math.floor(Math.random() * 15 + 15);
+                const humidity = Math.floor(Math.random() * 40 + 40);
+                return `<span class="badge info">WEATHER</span>Current Conditions:\n\n` +
+                       `  Temperature:  ${temp}°C\n` +
+                       `  Condition:    ${condition}\n` +
+                       `  Humidity:     ${humidity}%\n` +
+                       `  Wind:         ${Math.floor(Math.random() * 20 + 5)} km/h\n` +
+                       `  Visibility:   ${Math.floor(Math.random() * 5 + 5)} km`;
+            },
+
+            stats: () => {
+                return '<span class="badge info">STATS</span>System Statistics:\n\n' +
+                       createProgressBar('CPU Usage', Math.floor(Math.random() * 60 + 20)) +
+                       createProgressBar('Memory', Math.floor(Math.random() * 50 + 30)) +
+                       createProgressBar('Disk', Math.floor(Math.random() * 40 + 40)) +
+                       createProgressBar('Network', Math.floor(Math.random() * 70 + 10));
+            },
+
+            time: () => {
+                const now = new Date();
+                return `<span class="badge success">TIME</span>${now.toLocaleString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                })}`;
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+
+            echo: (args) => args.join(' ')
+        };
+
+        function createProgressBar(label, percentage) {
+            return `  ${label.padEnd(25)} ${'█'.repeat(Math.floor(percentage / 5))}${'░'.repeat(20 - Math.floor(percentage / 5))} ${percentage}%\n`;
+        }
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`<span style="color: rgba(150, 150, 255, 1);">❯ ~</span> ${cmd}`);
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, true);
+                } else if (cmd) {
+                    addOutput(`<span class="badge error">ERROR</span>Command not found: ${command}\n\nType 'help' to see available commands.`, true);
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'output';
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.textContent = text;
+            }
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Welcome message
+        addOutput('<span class="badge success">WELCOME</span>Glass Terminal initialized', true);
+        addOutput('<span style="color: rgba(255, 255, 255, 0.7);">Type <span style="color: rgba(150, 150, 255, 1); font-weight: 600;">help</span> to see available commands</span>', true);
+        addOutput('');
+    </script>
+</body>
+</html>

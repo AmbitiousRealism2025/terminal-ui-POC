@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaporwave Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(180deg, #ff00ff 0%, #00ffff 50%, #ff00ff 100%);
+            color: #ff00ff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .vaporwave-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(0deg, rgba(255, 0, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(60deg);
+            transform-origin: center bottom;
+            z-index: 0;
+            animation: grid-scroll 20s linear infinite;
+        }
+        @keyframes grid-scroll {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 50px; }
+        }
+        .sun {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(180deg, #ff0080 0%, #ff00ff 50%, #ff0080 100%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -120%);
+            box-shadow:
+                0 0 50px rgba(255, 0, 255, 0.8),
+                0 0 100px rgba(255, 0, 128, 0.6),
+                inset 0 0 50px rgba(255, 255, 255, 0.2);
+            z-index: 0;
+        }
+        .sun::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #ff0080;
+            top: 20%;
+            left: 0;
+            box-shadow:
+                0 20px 0 #ff0080,
+                0 40px 0 #ff0080,
+                0 60px 0 #ff0080,
+                0 80px 0 #ff0080;
+        }
+        .terminal {
+            width: 900px;
+            height: 650px;
+            background: linear-gradient(135deg,
+                rgba(10, 0, 20, 0.85) 0%,
+                rgba(20, 0, 40, 0.9) 50%,
+                rgba(10, 0, 20, 0.85) 100%);
+            border: 3px solid;
+            border-image: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff) 1;
+            padding: 30px;
+            overflow-y: auto;
+            box-shadow:
+                0 0 40px rgba(255, 0, 255, 0.5),
+                0 0 80px rgba(0, 255, 255, 0.3),
+                inset 0 0 60px rgba(255, 0, 255, 0.1);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+        .terminal::before {
+            content: 'Ａ Ｅ Ｓ Ｔ Ｈ Ｅ Ｔ Ｉ Ｃ';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            background: linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+            letter-spacing: 8px;
+            font-weight: bold;
+            animation: rainbow 3s linear infinite;
+        }
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+        #content {
+            margin-top: 35px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: slide-in 0.3s ease-out;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .output.pink {
+            background: linear-gradient(90deg, #ff1493, #ff69b4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .output.cyan {
+            background: linear-gradient(90deg, #00ffff, #00d4ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 15px;
+        }
+        .prompt {
+            background: linear-gradient(90deg, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-right: 10px;
+            text-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+            font-weight: bold;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% {
+                filter: brightness(1);
+            }
+            50% {
+                filter: brightness(1.5);
+            }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            background: linear-gradient(90deg, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Courier New', monospace;
+            font-size: 17px;
+            outline: none;
+            flex-grow: 1;
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 22px;
+            background: linear-gradient(180deg, #ff00ff, #00ffff);
+            animation: vapor-blink 0.8s infinite;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+        }
+        @keyframes vapor-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .palm-tree {
+            position: fixed;
+            font-size: 100px;
+            opacity: 0.1;
+            z-index: 0;
+            animation: sway 5s ease-in-out infinite;
+        }
+        @keyframes sway {
+            0%, 100% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+        }
+        .palm-left {
+            bottom: 20%;
+            left: 5%;
+        }
+        .palm-right {
+            bottom: 20%;
+            right: 5%;
+        }
+    </style>
+</head>
+<body>
+    <div class="vaporwave-bg"></div>
+    <div class="sun"></div>
+    <div class="palm-tree palm-left">🌴</div>
+    <div class="palm-tree palm-right">🌴</div>
+    <div class="terminal">
+        <div id="content">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">►</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: 'ａｅｓｔｈｅｔｉｃ　ｃｏｍｍａｎｄｓ\n\n' +
+                  '  vibe      - check the vibe\n' +
+                  '  aesthetic - aesthetic meter\n' +
+                  '  dream     - enter dreamscape\n' +
+                  '  retro     - retro wave scan\n' +
+                  '  synth     - synthwave generator\n' +
+                  '  neon      - neon city status\n' +
+                  '  chill     - chill mode\n' +
+                  '  vapor     - vaporize text\n' +
+                  '  clear     - clear screen\n' +
+                  '  echo      - echo message',
+            vibe: () => {
+                const vibes = [
+                    '✨ Ｖ　Ｉ　Ｂ　Ｅ　Ｃ　Ｈ　Ｅ　Ｃ　Ｋ ✨',
+                    '',
+                    'Chill Factor:     ████████████████████ 100%',
+                    'Aesthetic Level:  ██████████████████░░ 90%',
+                    'Retro Wave:       ███████████████████░ 95%',
+                    'Neon Intensity:   ████████████████████ 100%',
+                    'Vapor Density:    █████████████████░░░ 85%',
+                    '',
+                    'Status: Ａ Ｍ Ａ Ｚ Ｉ Ｎ Ｇ'
+                ];
+                return vibes.join('\n');
+            },
+            aesthetic: () => {
+                return '░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n' +
+                       '░　　　Ａ　Ｅ　Ｓ　Ｔ　Ｈ　Ｅ　Ｔ　Ｉ　Ｃ　　　░\n' +
+                       '░　　　　　Ｍ　Ｅ　Ｔ　Ｅ　Ｒ　　　　　░\n' +
+                       '░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n' +
+                       '\n' +
+                       '🌸 Beauty:        ████████████████████ MAX\n' +
+                       '🌊 Flow:          ███████████████████░ 95%\n' +
+                       '🌴 Paradise:      ████████████████████ MAX\n' +
+                       '💎 Quality:       ███████████████████░ 98%\n' +
+                       '🎵 Harmony:       ████████████████████ MAX\n' +
+                       '\n' +
+                       'ｒａｔｉｎｇ：　１　０　／　１　０';
+            },
+            dream: () => {
+                return '✧･ﾟ: *✧･ﾟ:* Ｅ Ｎ Ｔ Ｅ Ｒ Ｉ Ｎ Ｇ　Ｄ Ｒ Ｅ Ａ Ｍ Ｓ Ｃ Ａ Ｐ Ｅ *:･ﾟ✧*:･ﾟ✧\n' +
+                       '\n' +
+                       'Loading dreamscape...\n' +
+                       '░░░░░░░░░░░░░░░░░░░░ 20%\n' +
+                       '████░░░░░░░░░░░░░░░░ 40%\n' +
+                       '████████░░░░░░░░░░░░ 60%\n' +
+                       '████████████░░░░░░░░ 80%\n' +
+                       '████████████████████ 100%\n' +
+                       '\n' +
+                       '🌸 Cherry blossoms falling...\n' +
+                       '🌊 Digital waves crashing...\n' +
+                       '🌆 Neon city in the distance...\n' +
+                       '🎵 Synthwave echoing...\n' +
+                       '\n' +
+                       'You are now in the dreamscape. ✨';
+            },
+            retro: () => {
+                return '◢◤◢◤◢◤◢◤ Ｒ Ｅ Ｔ Ｒ Ｏ　Ｗ Ａ Ｖ Ｅ ◢◤◢◤◢◤◢◤\n' +
+                       '\n' +
+                       'Scanning frequencies...\n' +
+                       '\n' +
+                       '📻 FM 80.5  - Synthwave Station\n' +
+                       '📻 FM 82.3  - Vaporwave Lounge\n' +
+                       '📻 FM 85.7  - Retrowave Radio\n' +
+                       '📻 FM 88.1  - Future Funk\n' +
+                       '📻 FM 91.9  - Dreamwave Dreams\n' +
+                       '\n' +
+                       'All stations broadcasting perfectly! 📡';
+            },
+            synth: () => {
+                const waves = [
+                    '～～～～～～～～～～～～～～～～～～～～',
+                    '▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃▄▅▆▇█▇▆▅▄▃▂',
+                    '░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░',
+                    '◢◣◢◣◢◣◢◣◢◣◢◣◢◣◢◣◢◣◢◣',
+                ];
+                return '🎹 Ｓ Ｙ Ｎ Ｔ Ｈ　Ｇ Ｅ Ｎ Ｅ Ｒ Ａ Ｔ Ｏ Ｒ 🎹\n\n' +
+                       waves.join('\n') + '\n\n' +
+                       'Wave Form: Triangle\n' +
+                       'Frequency: 80Hz - 800Hz\n' +
+                       'Reverb: MAX\n' +
+                       'Delay: 250ms\n' +
+                       'Filter: Low-pass\n\n' +
+                       '♫♪♫♪ Ｐ Ｌ Ａ Ｙ Ｉ Ｎ Ｇ　Ｎ Ｏ Ｗ ♪♫♪♫';
+            },
+            neon: () => {
+                return '░▒▓█ Ｎ Ｅ Ｏ Ｎ　Ｃ Ｉ Ｔ Ｙ █▓▒░\n' +
+                       '\n' +
+                       '🏙️ Downtown District:    ONLINE\n' +
+                       '🌃 Night Mode:           ACTIVE\n' +
+                       '💡 Neon Signs:           100% LIT\n' +
+                       '🚗 Traffic Flow:         SMOOTH\n' +
+                       '🎆 Light Show:           SPECTACULAR\n' +
+                       '🌈 Color Spectrum:       FULL RGB\n' +
+                       '\n' +
+                       'City Status: ✨ Ｐ Ｅ Ｒ Ｆ Ｅ Ｃ Ｔ ✨';
+            },
+            chill: () => {
+                return '🌊　ｃ　ｈ　ｉ　ｌ　ｌ　　ｍ　ｏ　ｄ　ｅ　　ａ　ｃ　ｔ　ｉ　ｖ　ａ　ｔ　ｅ　ｄ　🌊\n' +
+                       '\n' +
+                       '▁ ▂ ▃ ▄ ▅ ▆ ▇ █ Relaxation Levels █ ▇ ▆ ▅ ▄ ▃ ▂ ▁\n' +
+                       '\n' +
+                       'Stress Level:     ░░░░░░░░░░░░░░░░░░░░ 0%\n' +
+                       'Calm Factor:      ████████████████████ 100%\n' +
+                       'Peace Index:      ████████████████████ MAX\n' +
+                       'Serenity:         ████████████████████ TOTAL\n' +
+                       '\n' +
+                       '🎵 Lo-fi beats playing...\n' +
+                       '☕ Virtual coffee brewing...\n' +
+                       '🌸 Good vibes flowing...\n' +
+                       '\n' +
+                       'ｊｕｓｔ　ｒ　ｅ　ｌ　ａ　ｘ　～';
+            },
+            vapor: (args) => {
+                if (args.length === 0) return 'Usage: vapor <text>';
+                const text = args.join(' ');
+                const vaporized = text.split('').map(c => {
+                    if (c === ' ') return '　';
+                    const code = c.charCodeAt(0);
+                    if (code >= 33 && code <= 126) {
+                        return String.fromCharCode(code + 65248);
+                    }
+                    return c;
+                }).join('');
+                return '✧･ﾟ: *✧･ﾟ:*\n' + vaporized + '\n*:･ﾟ✧*:･ﾟ✧';
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`► ${cmd}`, 'pink');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'cyan');
+                } else if (cmd) {
+                    addOutput(`✗ Unknown command: "${command}"\nType "help" for available commands.`, 'pink');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        addOutput('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░', 'pink');
+        addOutput('　　　Ｖ　Ａ　Ｐ　Ｏ　Ｒ　Ｗ　Ａ　Ｖ　Ｅ', 'pink');
+        addOutput('　　　　　Ｔ　Ｅ　Ｒ　Ｍ　Ｉ　Ｎ　Ａ　Ｌ', 'pink');
+        addOutput('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░', 'pink');
+        addOutput('', 'cyan');
+        addOutput('✧･ﾟ: *✧･ﾟ:* Welcome to the ａｅｓｔｈｅｔｉｃ experience *:･ﾟ✧*:･ﾟ✧', 'cyan');
+        addOutput('', 'cyan');
+        addOutput('Type "help" for available commands.', 'cyan');
+    </script>
+</body>
+</html>

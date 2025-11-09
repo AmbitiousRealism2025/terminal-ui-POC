@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vintage Amber Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: radial-gradient(ellipse at center, #1a1108 0%, #000000 100%);
+            color: #ffb000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .monitor-frame {
+            width: 900px;
+            height: 680px;
+            background: #2a2520;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.8),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        .screen-bezel {
+            width: 100%;
+            height: 100%;
+            background: #0a0805;
+            border-radius: 10px;
+            border: 3px solid #1a1510;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .crt-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(255, 176, 0, 0.05) 0px,
+                rgba(0, 0, 0, 0.4) 1px,
+                transparent 2px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 10;
+            animation: scanlines 8s linear infinite;
+        }
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(10px); }
+        }
+        .glow-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at center,
+                rgba(255, 176, 0, 0.15) 0%,
+                transparent 60%
+            );
+            pointer-events: none;
+            z-index: 9;
+        }
+        .terminal {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 10px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: #0a0805;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: #ffb000;
+            border-radius: 5px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #ffb000;
+            text-shadow:
+                0 0 5px #ffb000,
+                0 0 10px rgba(255, 176, 0, 0.5);
+            animation: phosphorGlow 0.4s ease-out;
+            letter-spacing: 0.5px;
+            line-height: 1.4;
+        }
+        @keyframes phosphorGlow {
+            0% {
+                opacity: 0;
+                text-shadow: 0 0 20px #ffb000;
+            }
+            100% {
+                opacity: 1;
+                text-shadow: 0 0 5px #ffb000, 0 0 10px rgba(255, 176, 0, 0.5);
+            }
+        }
+        .output.dim {
+            color: #cc8800;
+            text-shadow: 0 0 3px #cc8800;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+        }
+        .prompt {
+            color: #ffb000;
+            margin-right: 8px;
+            text-shadow: 0 0 5px #ffb000;
+            font-weight: bold;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ffb000;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 5px #ffb000;
+            letter-spacing: 0.5px;
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background-color: #ffb000;
+            animation: amberBlink 0.8s infinite;
+            box-shadow: 0 0 10px #ffb000;
+        }
+        @keyframes amberBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .vintage-badge {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: #8a6f47;
+            font-weight: bold;
+            z-index: 11;
+        }
+        .flicker {
+            animation: flicker 0.15s infinite alternate;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.95; }
+        }
+    </style>
+</head>
+<body>
+    <div class="monitor-frame">
+        <div class="screen-bezel">
+            <div class="crt-effect"></div>
+            <div class="glow-overlay"></div>
+            <div class="terminal">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">$</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+            <div class="vintage-badge">VT-100 COMPATIBLE</div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: 'VINTAGE TERMINAL SYSTEM - Available Commands:\n\n' +
+                  '  help      Display this help message\n' +
+                  '  about     About this terminal\n' +
+                  '  clear     Clear the screen\n' +
+                  '  list      List system files\n' +
+                  '  status    Display system status\n' +
+                  '  memory    Check memory usage\n' +
+                  '  date      Show current date and time\n' +
+                  '  banner    Display system banner\n' +
+                  '  echo      Echo text to screen',
+            about: 'Vintage Amber CRT Terminal Emulator\n' +
+                   'Model: VT-100 Compatible Display Unit\n' +
+                   'Phosphor: P3 (Amber)\n' +
+                   'Character Set: ASCII\n' +
+                   'Resolution: 80x24 characters\n\n' +
+                   'Manufactured: 1982\n' +
+                   'Status: Fully Operational',
+            clear: () => { output.innerHTML = ''; return ''; },
+            list: () => {
+                return 'Directory Listing:\n\n' +
+                       '  AUTOEXEC.BAS       4,234 bytes    01/15/82\n' +
+                       '  CONFIG.SYS           892 bytes    01/15/82\n' +
+                       '  STARTUP.COM        2,156 bytes    02/20/82\n' +
+                       '  TERMINAL.EXE      12,445 bytes    03/10/82\n' +
+                       '  README.TXT         1,024 bytes    03/10/82\n\n' +
+                       'Total: 5 files, 20,751 bytes';
+            },
+            status: () => {
+                return 'SYSTEM STATUS REPORT\n' +
+                       '═══════════════════════════════════════\n' +
+                       'CPU Load:        ████████░░  78%\n' +
+                       'Memory Usage:    ██████░░░░  64%\n' +
+                       'Disk I/O:        ███░░░░░░░  35%\n' +
+                       'Temperature:     ████░░░░░░  Normal\n\n' +
+                       'All systems functioning within normal parameters.';
+            },
+            memory: () => {
+                return 'MEMORY STATUS\n' +
+                       '─────────────────────────────────────\n' +
+                       'Total Memory:      64 KB\n' +
+                       'Available:         24 KB\n' +
+                       'Used:              40 KB\n' +
+                       'Buffer:             8 KB\n' +
+                       'Cache:              4 KB\n\n' +
+                       'Memory allocation: OPTIMAL';
+            },
+            date: () => {
+                const now = new Date();
+                return now.toLocaleString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            },
+            banner: () => {
+                return '╔═══════════════════════════════════════════════════╗\n' +
+                       '║                                                   ║\n' +
+                       '║     ▒█░░▒█ ▀█▀ ▒█▄░▒█ ▀▀█▀▀ ░█▀▀█ ▒█▀▀█ ▒█▀▀▀   ║\n' +
+                       '║     ░▒█▒█░ ▒█░ ▒█▒█▒█ ░▒█░░ ▒█▄▄█ ▒█░▄▄ ▒█▀▀▀   ║\n' +
+                       '║     ░░▀▄▀░ ▄█▄ ▒█░░▀█ ░▒█░░ ▒█░▒█ ▒█▄▄█ ▒█▄▄▄   ║\n' +
+                       '║                                                   ║\n' +
+                       '║           AMBER PHOSPHOR DISPLAY SYSTEM           ║\n' +
+                       '║                 Model VT-100                      ║\n' +
+                       '║                                                   ║\n' +
+                       '╚═══════════════════════════════════════════════════╝';
+            },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`$ ${cmd}`, false);
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, true);
+                } else if (cmd) {
+                    addOutput(`ERROR: Unknown command '${command}'\nType 'help' for available commands.`, true);
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, isDim = false) {
+            const div = document.createElement('div');
+            div.className = isDim ? 'output dim' : 'output';
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('VINTAGE TERMINAL SYSTEM v1.0', false);
+        addOutput('Copyright (c) 1982 Terminal Systems Inc.', true);
+        addOutput('', false);
+        addOutput('Initializing CRT display... OK', true);
+        addOutput('Loading character ROM... OK', true);
+        addOutput('Checking video memory... OK', true);
+        addOutput('', false);
+        addOutput('64K RAM System', false);
+        addOutput('', false);
+        addOutput('Ready. Type "help" for available commands.', false);
+    </script>
+</body>
+</html>

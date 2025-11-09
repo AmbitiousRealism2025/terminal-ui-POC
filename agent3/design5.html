@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green CRT Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+            color: #33ff33;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .crt-container {
+            width: 950px;
+            height: 750px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow:
+                0 30px 90px rgba(0, 0, 0, 0.9),
+                inset 0 0 100px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        .power-light {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            background: #33ff33;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #33ff33;
+            animation: power-pulse 2s ease-in-out infinite;
+        }
+        @keyframes power-pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        .terminal {
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            border: 8px solid #0d0d0d;
+            border-radius: 12px;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+            box-shadow:
+                inset 0 0 120px rgba(51, 255, 51, 0.2),
+                0 0 30px rgba(51, 255, 51, 0.1);
+        }
+        .terminal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(51, 255, 51, 0.08) 0px,
+                    transparent 1px,
+                    transparent 2px,
+                    rgba(51, 255, 51, 0.08) 3px
+                );
+            pointer-events: none;
+            border-radius: 4px;
+            animation: scanlines 8s linear infinite;
+        }
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(3px); }
+        }
+        .terminal::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center,
+                transparent 0%,
+                transparent 60%,
+                rgba(0, 0, 0, 0.3) 80%,
+                rgba(0, 0, 0, 0.6) 100%);
+            pointer-events: none;
+            border-radius: 4px;
+        }
+        .screen-flicker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(51, 255, 51, 0.02);
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+            border-radius: 4px;
+        }
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+        #content {
+            position: relative;
+            z-index: 1;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #33ff33;
+            text-shadow:
+                0 0 5px rgba(51, 255, 51, 0.9),
+                0 0 10px rgba(51, 255, 51, 0.7),
+                0 0 15px rgba(51, 255, 51, 0.5);
+            font-size: 16px;
+            line-height: 1.5;
+            animation: text-glow 0.1s ease-out;
+            letter-spacing: 0.5px;
+        }
+        @keyframes text-glow {
+            from {
+                opacity: 0.7;
+                text-shadow:
+                    0 0 20px rgba(51, 255, 51, 1),
+                    0 0 30px rgba(51, 255, 51, 0.8);
+            }
+            to {
+                opacity: 1;
+                text-shadow:
+                    0 0 5px rgba(51, 255, 51, 0.9),
+                    0 0 10px rgba(51, 255, 51, 0.7),
+                    0 0 15px rgba(51, 255, 51, 0.5);
+            }
+        }
+        .output.bright {
+            color: #66ff66;
+            text-shadow:
+                0 0 8px rgba(102, 255, 102, 1),
+                0 0 15px rgba(102, 255, 102, 0.8);
+        }
+        .output.dim {
+            color: #00cc00;
+            text-shadow:
+                0 0 3px rgba(0, 204, 0, 0.8),
+                0 0 6px rgba(0, 204, 0, 0.5);
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+        }
+        .prompt {
+            color: #33ff33;
+            margin-right: 5px;
+            text-shadow:
+                0 0 8px rgba(51, 255, 51, 1),
+                0 0 15px rgba(51, 255, 51, 0.8);
+            font-weight: bold;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #33ff33;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow:
+                0 0 5px rgba(51, 255, 51, 0.9),
+                0 0 10px rgba(51, 255, 51, 0.7);
+            letter-spacing: 0.5px;
+        }
+        #input::selection {
+            background: rgba(51, 255, 51, 0.3);
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background-color: #33ff33;
+            animation: crt-blink 0.7s infinite;
+            box-shadow:
+                0 0 8px rgba(51, 255, 51, 1),
+                0 0 15px rgba(51, 255, 51, 0.8);
+        }
+        @keyframes crt-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .boot-text {
+            animation: boot-in 0.05s ease-out;
+        }
+        @keyframes boot-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-container">
+        <div class="terminal">
+            <div class="screen-flicker"></div>
+            <div id="content">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">root@crt:~#</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+        </div>
+        <div class="power-light"></div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: 'Available system commands:\n\n' +
+                  '  sysinfo   - Display system information\n' +
+                  '  monitor   - System monitoring\n' +
+                  '  network   - Network status\n' +
+                  '  process   - List running processes\n' +
+                  '  memory    - Memory statistics\n' +
+                  '  disk      - Disk usage information\n' +
+                  '  cpu       - CPU information\n' +
+                  '  uptime    - System uptime\n' +
+                  '  logs      - View system logs\n' +
+                  '  users     - List logged in users\n' +
+                  '  time      - Display system time\n' +
+                  '  clear     - Clear screen\n' +
+                  '  echo      - Echo text',
+            sysinfo: () => {
+                return '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       '  SYSTEM INFORMATION\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                       '  Hostname:      crt-terminal\n' +
+                       '  OS:            GreenOS v1.0 (Classic Edition)\n' +
+                       '  Kernel:        Linux 2.6.32-crt\n' +
+                       '  Architecture:  x86_64\n' +
+                       '  Display:       VT100 Compatible CRT\n' +
+                       '  Resolution:    80x24 text mode\n' +
+                       '  Phosphor:      P1 Green\n\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+            },
+            monitor: () => {
+                const cpu = Math.floor(Math.random() * 40) + 20;
+                const mem = Math.floor(Math.random() * 50) + 30;
+                const disk = Math.floor(Math.random() * 30) + 40;
+                return '┌─────────────────────────────────────────┐\n' +
+                       '│        SYSTEM MONITOR                   │\n' +
+                       '└─────────────────────────────────────────┘\n\n' +
+                       `  CPU Usage:    [${'█'.repeat(cpu/5)}${' '.repeat(20-cpu/5)}] ${cpu}%\n` +
+                       `  Memory:       [${'█'.repeat(mem/5)}${' '.repeat(20-mem/5)}] ${mem}%\n` +
+                       `  Disk I/O:     [${'█'.repeat(disk/5)}${' '.repeat(20-disk/5)}] ${disk}%\n\n` +
+                       '  Temperature:  42°C\n' +
+                       '  Fan Speed:    2400 RPM\n' +
+                       '  Load Avg:     0.45, 0.38, 0.31\n\n' +
+                       '  Status: OPERATIONAL';
+            },
+            network: () => {
+                return '┌─────────────────────────────────────────┐\n' +
+                       '│        NETWORK STATUS                   │\n' +
+                       '└─────────────────────────────────────────┘\n\n' +
+                       '  Interface:    eth0\n' +
+                       '  Status:       UP\n' +
+                       '  IP Address:   192.168.1.' + (Math.floor(Math.random() * 200) + 10) + '\n' +
+                       '  Netmask:      255.255.255.0\n' +
+                       '  Gateway:      192.168.1.1\n' +
+                       '  DNS:          8.8.8.8\n\n' +
+                       '  TX Packets:   ' + (Math.floor(Math.random() * 9000) + 1000) + '\n' +
+                       '  RX Packets:   ' + (Math.floor(Math.random() * 9000) + 1000) + '\n' +
+                       '  Errors:       0\n\n' +
+                       '  Connection:   ESTABLISHED';
+            },
+            process: () => {
+                return '  PID    USER     CPU%   MEM%   COMMAND\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       '    1    root      0.0    0.2   init\n' +
+                       '  156    root      0.1    0.3   systemd\n' +
+                       '  342    root      0.0    0.5   sshd\n' +
+                       '  445    root      2.3    1.2   crtd\n' +
+                       '  512    root      0.0    0.1   cron\n' +
+                       '  678    user      1.1    2.4   bash\n' +
+                       '  891    user      0.0    0.8   terminal\n' +
+                       '  923    user      0.0    0.0   ps\n\n' +
+                       'Total: 8 processes';
+            },
+            memory: () => {
+                const total = 8192;
+                const used = Math.floor(Math.random() * 4000) + 2000;
+                const free = total - used;
+                const buffers = Math.floor(Math.random() * 800) + 200;
+                const cached = Math.floor(Math.random() * 1200) + 400;
+                return '┌─────────────────────────────────────────┐\n' +
+                       '│        MEMORY STATISTICS                │\n' +
+                       '└─────────────────────────────────────────┘\n\n' +
+                       `  Total:        ${total} MB\n` +
+                       `  Used:         ${used} MB\n` +
+                       `  Free:         ${free} MB\n` +
+                       `  Buffers:      ${buffers} MB\n` +
+                       `  Cached:       ${cached} MB\n\n` +
+                       `  Usage:  [${'█'.repeat(Math.floor(used*20/total))}${' '.repeat(20-Math.floor(used*20/total))}] ${Math.floor(used*100/total)}%\n\n` +
+                       '  Swap Total:   4096 MB\n' +
+                       '  Swap Used:    128 MB\n' +
+                       '  Swap Free:    3968 MB';
+            },
+            disk: () => {
+                return 'Filesystem     Size   Used   Avail  Use%  Mounted on\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       '/dev/sda1       50G    32G     16G   67%  /\n' +
+                       '/dev/sda2      100G    45G     52G   46%  /home\n' +
+                       '/dev/sda3       20G     8G     11G   42%  /var\n' +
+                       'tmpfs          4.0G   128M    3.9G    4%  /tmp\n\n' +
+                       'Total disk usage: 54%';
+            },
+            cpu: () => {
+                return '┌─────────────────────────────────────────┐\n' +
+                       '│        CPU INFORMATION                  │\n' +
+                       '└─────────────────────────────────────────┘\n\n' +
+                       '  Processor:    Intel i7-9700K\n' +
+                       '  Cores:        8 cores\n' +
+                       '  Threads:      8 threads\n' +
+                       '  Base Clock:   3.60 GHz\n' +
+                       '  Max Turbo:    4.90 GHz\n' +
+                       '  Cache:        12 MB\n' +
+                       '  Architecture: x86_64\n\n' +
+                       '  Core Usage:\n' +
+                       '    Core 0:  █████████░░  45%\n' +
+                       '    Core 1:  ███████░░░░  35%\n' +
+                       '    Core 2:  ██████████░  50%\n' +
+                       '    Core 3:  ████░░░░░░░  20%\n' +
+                       '    Core 4:  ███████████  55%\n' +
+                       '    Core 5:  ████████░░░  40%\n' +
+                       '    Core 6:  ██████░░░░░  30%\n' +
+                       '    Core 7:  █████████░░  45%';
+            },
+            uptime: () => {
+                const days = Math.floor(Math.random() * 100) + 10;
+                const hours = Math.floor(Math.random() * 24);
+                const mins = Math.floor(Math.random() * 60);
+                return `System uptime: ${days} days, ${hours} hours, ${mins} minutes\n` +
+                       `Boot time: ${new Date(Date.now() - (days * 86400000 + hours * 3600000 + mins * 60000)).toLocaleString()}\n` +
+                       `Current time: ${new Date().toLocaleString()}\n\n` +
+                       `Load averages: ${(Math.random() * 2).toFixed(2)}, ${(Math.random() * 2).toFixed(2)}, ${(Math.random() * 2).toFixed(2)}\n` +
+                       `Users logged in: 2`;
+            },
+            logs: () => {
+                const logs = [
+                    '[OK] Started System Logging Service',
+                    '[OK] Started Network Time Synchronization',
+                    '[OK] Reached target Network',
+                    '[OK] Started CRT Display Manager',
+                    '[OK] Started Terminal Service',
+                    '[INFO] User root logged in',
+                    '[INFO] System health check: PASSED',
+                    '[OK] All systems operational'
+                ];
+                return '━━━━━━━━ SYSTEM LOGS ━━━━━━━━\n\n' +
+                       logs.join('\n') +
+                       '\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+            },
+            users: () => {
+                return 'USER     TTY      FROM             LOGIN@   IDLE\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       'root     tty1                      08:30    0:00\n' +
+                       'user     pts/0    192.168.1.100    09:15    0:05\n\n' +
+                       'Total users: 2';
+            },
+            time: () => {
+                const now = new Date();
+                return `Local time:  ${now.toLocaleString()}\n` +
+                       `UTC time:    ${now.toUTCString()}\n` +
+                       `Timezone:    ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n` +
+                       `Timestamp:   ${Math.floor(now.getTime() / 1000)}`;
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`root@crt:~# ${cmd}`, 'bright');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'dim');
+                } else if (cmd) {
+                    addOutput(`bash: ${command}: command not found`, 'dim');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        const bootMessages = [
+            'CRT Terminal Boot Sequence v1.0',
+            '',
+            'Initializing hardware...',
+            'Checking phosphor screen... OK',
+            'Electron gun calibration... OK',
+            'Deflection coils... OK',
+            'High voltage... OK',
+            '',
+            'Loading system...',
+            'Starting kernel...',
+            'Mounting filesystems... OK',
+            'Starting system services... OK',
+            '',
+            'GreenOS v1.0 (tty1)',
+            '',
+            'crt-terminal login: root',
+            'Password: ********',
+            '',
+            'Last login: ' + new Date().toLocaleString(),
+            'Welcome to GreenOS Classic Edition',
+            '',
+            'Type "help" for available commands.',
+            ''
+        ];
+
+        let bootIndex = 0;
+        function bootSequence() {
+            if (bootIndex < bootMessages.length) {
+                addOutput(bootMessages[bootIndex], 'boot-text');
+                bootIndex++;
+                setTimeout(bootSequence, 50);
+            }
+        }
+
+        bootSequence();
+    </script>
+</body>
+</html>

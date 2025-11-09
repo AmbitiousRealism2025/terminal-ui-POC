@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical War Room Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0f0d 0%, #1a2f1a 50%, #0a0f0d 100%);
+            color: #00ff41;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .war-room-container {
+            width: 1100px;
+            height: 750px;
+            background: rgba(10, 20, 10, 0.95);
+            border: 3px solid #00ff41;
+            position: relative;
+            z-index: 1;
+            box-shadow:
+                0 0 30px rgba(0, 255, 65, 0.3),
+                inset 0 0 100px rgba(0, 255, 65, 0.05);
+        }
+        .top-bar {
+            height: 60px;
+            background: linear-gradient(to bottom, rgba(0, 50, 20, 0.8), rgba(0, 30, 15, 0.8));
+            border-bottom: 2px solid #00ff41;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        .mission-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .status-badge {
+            padding: 5px 12px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px #00ff41;
+        }
+        .status-badge.alert {
+            border-color: #ff4141;
+            color: #ff4141;
+            background: rgba(255, 65, 65, 0.1);
+            animation: alertPulse 1s infinite;
+        }
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .threat-level {
+            font-size: 14px;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+            font-weight: bold;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            grid-template-rows: 1fr 300px;
+            height: calc(100% - 60px);
+        }
+        .side-panel {
+            background: rgba(0, 20, 10, 0.6);
+            border-right: 1px solid #00ff41;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .side-panel.right {
+            border-right: none;
+            border-left: 1px solid #00ff41;
+        }
+        .side-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .side-panel::-webkit-scrollbar-track {
+            background: rgba(0, 20, 10, 0.5);
+        }
+        .side-panel::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 3px;
+        }
+        .panel-section {
+            margin-bottom: 20px;
+        }
+        .panel-title {
+            color: #00ff41;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px #00ff41;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: #00cc33;
+        }
+        .stat-value {
+            color: #00ff41;
+            font-weight: bold;
+        }
+        .threat-indicator {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 255, 65, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .threat-bar {
+            height: 100%;
+            background: linear-gradient(to right, #00ff41, #ffff00, #ff4141);
+            transition: width 0.3s;
+        }
+        .map-display {
+            grid-column: 2;
+            grid-row: 1;
+            background: rgba(0, 10, 5, 0.8);
+            border: 1px solid #00ff41;
+            margin: 10px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .radar {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #00ff41;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        .radar::before,
+        .radar::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 50%;
+        }
+        .radar::before {
+            width: 66%;
+            height: 66%;
+        }
+        .radar::after {
+            width: 33%;
+            height: 33%;
+        }
+        .radar-sweep {
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #00ff41);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: left center;
+            animation: sweep 4s linear infinite;
+        }
+        @keyframes sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .blip {
+            width: 6px;
+            height: 6px;
+            background: #ff4141;
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 10px #ff4141;
+            animation: blipPulse 1s infinite;
+        }
+        @keyframes blipPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+        .terminal-section {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            background: rgba(0, 10, 5, 0.8);
+            border-top: 2px solid #00ff41;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+        }
+        .terminal-title {
+            color: #00ff41;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #00ff41;
+        }
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .terminal-output::-webkit-scrollbar {
+            width: 8px;
+        }
+        .terminal-output::-webkit-scrollbar-track {
+            background: rgba(0, 20, 10, 0.5);
+        }
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 4px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #00ff41;
+            text-shadow: 0 0 2px #00ff41;
+            font-size: 13px;
+            animation: terminalFade 0.3s ease-out;
+        }
+        @keyframes terminalFade {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .output.classified {
+            color: #ffff00;
+            text-shadow: 0 0 3px #ffff00;
+        }
+        .output.threat {
+            color: #ff4141;
+            text-shadow: 0 0 3px #ff4141;
+            font-weight: bold;
+        }
+        .output.secure {
+            color: #00cc33;
+        }
+        .input-line {
+            display: flex;
+            align-items: center;
+        }
+        .prompt {
+            color: #00ff41;
+            margin-right: 10px;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ff41;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #00ff41;
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            font-size: 13px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 2px #00ff41;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+
+    <div class="war-room-container">
+        <div class="top-bar">
+            <div class="mission-status">
+                <div class="status-badge">OPERATIONAL</div>
+                <div class="status-badge alert">ALERT ACTIVE</div>
+                <div class="threat-level">THREAT LEVEL: <span id="threatLevel">MEDIUM</span></div>
+            </div>
+            <div style="font-size: 18px; font-weight: bold; letter-spacing: 3px; text-shadow: 0 0 10px #00ff41;">
+                TACTICAL COMMAND CENTER
+            </div>
+            <div style="font-size: 12px; color: #00cc33;">
+                <span id="clock">--:--:--</span>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="side-panel">
+                <div class="panel-section">
+                    <div class="panel-title">SYSTEM STATUS</div>
+                    <div class="stat-item">
+                        <span>Power Grid:</span>
+                        <span class="stat-value">98%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Defenses:</span>
+                        <span class="stat-value">ARMED</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Comms:</span>
+                        <span class="stat-value">SECURE</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Personnel:</span>
+                        <span class="stat-value">247/250</span>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">ACTIVE UNITS</div>
+                    <div class="stat-item">
+                        <span>Alpha Squad:</span>
+                        <span class="stat-value">READY</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Bravo Squad:</span>
+                        <span class="stat-value">DEPLOYED</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Air Support:</span>
+                        <span class="stat-value">STANDBY</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Armored:</span>
+                        <span class="stat-value">READY</span>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">THREAT ANALYSIS</div>
+                    <div class="threat-indicator">
+                        <div class="threat-bar" style="width: 45%"></div>
+                    </div>
+                    <div class="stat-item" style="margin-top: 10px;">
+                        <span>Detected:</span>
+                        <span class="stat-value">7 BOGEYS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-display">
+                <div class="radar">
+                    <div class="radar-sweep"></div>
+                    <div class="blip" style="top: 30%; left: 60%;"></div>
+                    <div class="blip" style="top: 70%; left: 40%; animation-delay: 0.3s;"></div>
+                    <div class="blip" style="top: 50%; left: 80%; animation-delay: 0.6s;"></div>
+                </div>
+            </div>
+
+            <div class="side-panel right">
+                <div class="panel-section">
+                    <div class="panel-title">MISSION LOG</div>
+                    <div class="stat-item">
+                        <span style="color: #00ff41;">14:23</span>
+                        <span style="font-size: 10px;">Patrol initiated</span>
+                    </div>
+                    <div class="stat-item">
+                        <span style="color: #00ff41;">14:45</span>
+                        <span style="font-size: 10px;">Contact detected</span>
+                    </div>
+                    <div class="stat-item">
+                        <span style="color: #ff4141;">15:12</span>
+                        <span style="font-size: 10px;">Alert raised</span>
+                    </div>
+                    <div class="stat-item">
+                        <span style="color: #00ff41;">15:30</span>
+                        <span style="font-size: 10px;">Units deployed</span>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">INTEL UPDATES</div>
+                    <div style="font-size: 10px; color: #00cc33; line-height: 1.5;">
+                        • Enemy movement detected<br>
+                        • Satellite imagery updated<br>
+                        • Weather: Clear<br>
+                        • Wind: 15 knots NE
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">RESOURCES</div>
+                    <div class="stat-item">
+                        <span>Ammunition:</span>
+                        <span class="stat-value">87%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Fuel:</span>
+                        <span class="stat-value">92%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Medical:</span>
+                        <span class="stat-value">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="terminal-section">
+                <div class="terminal-header">
+                    <div class="terminal-title">COMMAND TERMINAL</div>
+                    <div style="font-size: 11px; color: #00cc33;">ENCRYPTED CONNECTION</div>
+                </div>
+                <div class="terminal-output" id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">CMD&gt;</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toTimeString().slice(0, 8);
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Terminal logic
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return '╔════════════════════════════════════════════╗\n' +
+                       '║      TACTICAL COMMAND TERMINAL v4.2        ║\n' +
+                       '╠════════════════════════════════════════════╣\n' +
+                       '║  help      - Command reference             ║\n' +
+                       '║  sitrep    - Situation report              ║\n' +
+                       '║  intel     - Intelligence briefing         ║\n' +
+                       '║  deploy    - Deploy units                  ║\n' +
+                       '║  recall    - Recall units                  ║\n' +
+                       '║  scan      - Sector scan                   ║\n' +
+                       '║  comms     - Communications log            ║\n' +
+                       '║  defcon    - Defense condition status      ║\n' +
+                       '║  assets    - Available assets              ║\n' +
+                       '║  clear     - Clear terminal                ║\n' +
+                       '║  echo      - Echo message                  ║\n' +
+                       '╚════════════════════════════════════════════╝';
+            },
+            sitrep: () => {
+                return '[CLASSIFIED] SITUATION REPORT\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                       'TIME: ' + new Date().toTimeString().slice(0, 8) + '\n' +
+                       'LOCATION: Sector 7-G\n' +
+                       'STATUS: HEIGHTENED ALERT\n\n' +
+                       'FRIENDLY FORCES:\n' +
+                       '  • Alpha Squad: Deployed (Grid 4-2)\n' +
+                       '  • Bravo Squad: Deployed (Grid 6-8)\n' +
+                       '  • Air Support: On Standby\n\n' +
+                       'ENEMY ACTIVITY:\n' +
+                       '  • 7 Unidentified contacts detected\n' +
+                       '  • Movement pattern: Reconnaissance\n' +
+                       '  • Threat assessment: MEDIUM\n\n' +
+                       'RECOMMENDATION: Maintain alert status';
+            },
+            intel: () => {
+                return '[TOP SECRET] INTELLIGENCE BRIEFING\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                       'PRIORITY UPDATES:\n\n' +
+                       '  [HIGH] Satellite imagery shows enemy buildup\n' +
+                       '         in sectors 5-7. Estimated 200+ units.\n\n' +
+                       '  [MED]  Communications intercept suggests\n' +
+                       '         planned operation within 48 hours.\n\n' +
+                       '  [LOW]  Weather forecast: Clear skies for\n' +
+                       '         next 72 hours. Optimal for air ops.\n\n' +
+                       'SOURCES: SIGINT, SATINT, HUMINT\n' +
+                       'CONFIDENCE: HIGH';
+            },
+            deploy: (args) => {
+                const units = ['alpha', 'bravo', 'charlie', 'delta'];
+                const unit = args[0] ? args[0].toLowerCase() : null;
+
+                if (!unit) {
+                    return 'USAGE: deploy <unit>\n' +
+                           'Available units: alpha, bravo, charlie, delta';
+                }
+
+                if (units.includes(unit)) {
+                    return `[EXECUTING] Deploying ${unit.toUpperCase()} Squad...\n\n` +
+                           '  ✓ Orders transmitted\n' +
+                           '  ✓ Unit acknowledged\n' +
+                           '  ✓ Moving to staging area\n' +
+                           '  ✓ ETA to objective: 15 minutes\n\n' +
+                           `${unit.toUpperCase()} Squad: DEPLOYED`;
+                }
+
+                return `ERROR: Unknown unit '${unit}'`;
+            },
+            recall: (args) => {
+                const unit = args[0] ? args[0].toLowerCase() : 'all';
+                return `[EXECUTING] Recalling ${unit === 'all' ? 'ALL' : unit.toUpperCase()} units...\n\n` +
+                       '  ✓ Recall order transmitted\n' +
+                       '  ✓ Units acknowledging\n' +
+                       '  ✓ RTB (Return To Base) initiated\n\n' +
+                       'All units returning to base.';
+            },
+            scan: () => {
+                const contacts = Math.floor(Math.random() * 5) + 3;
+                let result = '[RADAR] Sector scan initiated...\n\n';
+                result += `Scanning 360° radius - 50km range\n\n`;
+                result += `CONTACTS DETECTED: ${contacts}\n\n`;
+
+                for (let i = 1; i <= contacts; i++) {
+                    const bearing = Math.floor(Math.random() * 360);
+                    const range = Math.floor(Math.random() * 40) + 10;
+                    const type = ['GROUND', 'AIR', 'UNKNOWN'][Math.floor(Math.random() * 3)];
+                    result += `  CONTACT ${i}:\n`;
+                    result += `    Bearing: ${bearing}°\n`;
+                    result += `    Range: ${range}km\n`;
+                    result += `    Type: ${type}\n\n`;
+                }
+
+                return result + 'Scan complete.';
+            },
+            comms: () => {
+                return '[SECURE] COMMUNICATIONS LOG\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                       '14:23 - ALPHA LEAD: "In position, sector clear"\n' +
+                       '14:45 - BRAVO LEAD: "Contact, bearing 270"\n' +
+                       '15:02 - COMMAND: "Roger Bravo, maintain observation"\n' +
+                       '15:12 - ALPHA LEAD: "Multiple contacts detected"\n' +
+                       '15:15 - COMMAND: "All units, raise alert status"\n' +
+                       '15:30 - AIR-1: "On station, awaiting orders"\n\n' +
+                       'End of log.';
+            },
+            defcon: () => {
+                return 'DEFENSE CONDITION STATUS\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                       '  DEFCON 5: Normal peacetime readiness\n' +
+                       '  DEFCON 4: Increased intelligence watch\n' +
+                       '  DEFCON 3: Increase in force readiness   ◄ CURRENT\n' +
+                       '  DEFCON 2: Further increase in readiness\n' +
+                       '  DEFCON 1: Maximum readiness\n\n' +
+                       'Current Status: DEFCON 3\n' +
+                       'Authorization: COMMAND LEVEL';
+            },
+            assets: () => {
+                return 'AVAILABLE ASSETS\n' +
+                       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                       'GROUND FORCES:\n' +
+                       '  • Infantry Squads: 12 (9 ready, 3 rest)\n' +
+                       '  • Armored Units: 8 (All ready)\n' +
+                       '  • Artillery: 4 batteries (All ready)\n\n' +
+                       'AIR ASSETS:\n' +
+                       '  • Fighter Aircraft: 6 (All ready)\n' +
+                       '  • Attack Helicopters: 4 (All ready)\n' +
+                       '  • Transport: 3 (All ready)\n\n' +
+                       'SUPPORT:\n' +
+                       '  • Medical Teams: 2 (On standby)\n' +
+                       '  • Supply Convoys: 3 (Available)';
+            },
+            clear: () => {
+                output.innerHTML = '';
+                return '';
+            },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`CMD> ${cmd}`, 'secure');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) {
+                        const className = result.includes('[CLASSIFIED]') || result.includes('[TOP SECRET]')
+                            ? 'classified'
+                            : result.includes('ERROR') || result.includes('THREAT')
+                            ? 'threat'
+                            : '';
+                        addOutput(result, className);
+                    }
+                } else if (cmd) {
+                    addOutput(`[ERROR] Unknown command: ${command}`, 'threat');
+                    addOutput('Type "help" for available commands', 'secure');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Initial messages
+        addOutput('╔════════════════════════════════════════════════════╗', 'classified');
+        addOutput('║  TACTICAL COMMAND CENTER - SECURE TERMINAL         ║', 'classified');
+        addOutput('║  Authorization Level: OMEGA                        ║', 'classified');
+        addOutput('╚════════════════════════════════════════════════════╝', 'classified');
+        addOutput('');
+        addOutput('[SYSTEM] Encrypted connection established...', 'secure');
+        addOutput('[SYSTEM] Biometric authentication: VERIFIED', 'secure');
+        addOutput('[SYSTEM] Access granted to all command functions', 'secure');
+        addOutput('');
+        addOutput('Type "help" for available commands.', 'secure');
+    </script>
+</body>
+</html>

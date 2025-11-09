@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steampunk Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(184, 115, 51, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, #1a0f0a 0%, #2d1810 50%, #1a0f0a 100%);
+            color: #d4a574;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .gear-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .gear {
+            position: absolute;
+            border: 8px solid #8b4513;
+            border-radius: 50%;
+            animation: rotate 30s linear infinite;
+        }
+        .gear1 {
+            width: 200px;
+            height: 200px;
+            top: 10%;
+            left: 5%;
+        }
+        .gear2 {
+            width: 150px;
+            height: 150px;
+            bottom: 15%;
+            right: 10%;
+            animation-direction: reverse;
+            animation-duration: 20s;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .terminal-case {
+            width: 900px;
+            height: 680px;
+            background: linear-gradient(135deg, #3d2817 0%, #2d1810 50%, #3d2817 100%);
+            border: 6px solid;
+            border-image: linear-gradient(45deg, #8b4513, #cd853f, #8b4513) 1;
+            border-radius: 15px;
+            box-shadow:
+                0 0 30px rgba(139, 69, 19, 0.5),
+                inset 0 0 50px rgba(0, 0, 0, 0.5),
+                0 5px 15px rgba(0, 0, 0, 0.8);
+            position: relative;
+            z-index: 1;
+            padding: 15px;
+        }
+        .brass-plate {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, #cd853f 0%, #8b4513 50%, #cd853f 100%);
+            padding: 8px 25px;
+            border-radius: 5px;
+            border: 2px solid #654321;
+            box-shadow:
+                0 4px 8px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 215, 100, 0.5);
+            font-weight: bold;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #2d1810;
+            text-shadow: 0 1px 0 rgba(255, 215, 100, 0.5);
+        }
+        .corner-rivet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, #cd853f 0%, #8b4513 70%);
+            border-radius: 50%;
+            border: 1px solid #654321;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .rivet-tl { top: 8px; left: 8px; }
+        .rivet-tr { top: 8px; right: 8px; }
+        .rivet-bl { bottom: 8px; left: 8px; }
+        .rivet-br { bottom: 8px; right: 8px; }
+        .screen-frame {
+            width: 100%;
+            height: 100%;
+            background: #0a0604;
+            border: 4px solid #654321;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow:
+                inset 0 0 30px rgba(0, 0, 0, 0.8),
+                0 0 20px rgba(139, 69, 19, 0.3);
+            position: relative;
+        }
+        .screen-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at center,
+                rgba(212, 165, 116, 0.1) 0%,
+                transparent 70%
+            );
+            pointer-events: none;
+        }
+        .terminal {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 12px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: #1a0f0a;
+            border: 1px solid #654321;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #cd853f, #8b4513);
+            border: 1px solid #654321;
+            border-radius: 3px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #d4a574;
+            text-shadow: 0 0 8px rgba(212, 165, 116, 0.5);
+            line-height: 1.5;
+            animation: steamType 0.3s ease-out;
+        }
+        @keyframes steamType {
+            0% {
+                opacity: 0;
+                transform: translateX(-5px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .output.brass {
+            color: #cd853f;
+            text-shadow: 0 0 10px rgba(205, 133, 63, 0.6);
+            font-weight: bold;
+        }
+        .output.copper {
+            color: #b87333;
+            text-shadow: 0 0 8px rgba(184, 115, 51, 0.5);
+        }
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            padding: 8px;
+            background: rgba(139, 69, 19, 0.1);
+            border: 1px solid #654321;
+            border-radius: 4px;
+        }
+        .prompt {
+            color: #cd853f;
+            margin-right: 10px;
+            text-shadow: 0 0 10px rgba(205, 133, 63, 0.6);
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .prompt::before {
+            content: '⚙';
+            margin-right: 6px;
+            animation: rotate 4s linear infinite;
+            display: inline-block;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #d4a574;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 5px rgba(212, 165, 116, 0.4);
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background: linear-gradient(180deg, #cd853f, #b87333);
+            animation: steamBlink 1s infinite;
+            box-shadow: 0 0 8px rgba(205, 133, 63, 0.6);
+        }
+        @keyframes steamBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .brass-label {
+            display: inline-block;
+            background: linear-gradient(90deg, #8b4513, #cd853f, #8b4513);
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 8px;
+            color: #1a0f0a;
+            text-shadow: 0 1px 0 rgba(255, 215, 100, 0.3);
+            border: 1px solid #654321;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .pressure-gauge {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            font-size: 10px;
+            color: #8b4513;
+            font-weight: bold;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="gear-background">
+        <div class="gear gear1"></div>
+        <div class="gear gear2"></div>
+    </div>
+    <div class="terminal-case">
+        <div class="brass-plate">ANALYTICAL ENGINE TERMINAL</div>
+        <div class="corner-rivet rivet-tl"></div>
+        <div class="corner-rivet rivet-tr"></div>
+        <div class="corner-rivet rivet-bl"></div>
+        <div class="corner-rivet rivet-br"></div>
+        <div class="screen-frame">
+            <div class="screen-glow"></div>
+            <div class="terminal">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">COMMAND</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+            <div class="pressure-gauge">STEAM PRESSURE: OPTIMAL</div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return '<span class="brass-label">MANUAL</span>Analytical Engine Commands:\n\n' +
+                       '  help         Display this manual\n' +
+                       '  about        About the Analytical Engine\n' +
+                       '  calculate    Perform calculation\n' +
+                       '  status       System diagnostics\n' +
+                       '  pressure     Check steam pressure\n' +
+                       '  gears        Gear mechanism status\n' +
+                       '  punch        Punch card operations\n' +
+                       '  telegraph    Send telegraph message\n' +
+                       '  clear        Clear the display\n' +
+                       '  echo         Echo message';
+            },
+            about: () => {
+                return '<span class="brass-label">ABOUT</span>The Analytical Engine Terminal\n\n' +
+                       'Model: Babbage Mk. IV\n' +
+                       'Year of Manufacture: 1885\n' +
+                       'Power Source: Steam\n' +
+                       'Computing Method: Mechanical\n' +
+                       'Storage: Punch Cards\n' +
+                       'Precision: 40 decimal places\n\n' +
+                       'A marvel of Victorian engineering,\n' +
+                       'combining brass, copper, and innovation.';
+            },
+            calculate: () => {
+                const operations = [
+                    'Calculating trajectory...',
+                    'Engaging difference engine...',
+                    'Rotating calculation drums...',
+                    'Processing via brass gears...'
+                ];
+                const op = operations[Math.floor(Math.random() * operations.length)];
+                const result = Math.floor(Math.random() * 10000);
+                return '<span class="brass-label">COMPUTE</span>' + op + '\n\n' +
+                       '  ⚙ Gear Position:  ' + Math.floor(Math.random() * 360) + '°\n' +
+                       '  ⚙ Steam Flow:     Nominal\n' +
+                       '  ⚙ Calculation:    ' + result + '\n\n' +
+                       'Computation complete.';
+            },
+            status: () => {
+                return '<span class="brass-label">DIAGNOSTICS</span>System Status Report:\n\n' +
+                       '  ⚙ Main Gear Train:      OPERATIONAL\n' +
+                       '  ⚙ Steam Pressure:       14.2 PSI\n' +
+                       '  ⚙ Boiler Temperature:   185°F\n' +
+                       '  ⚙ Punch Card Reader:    READY\n' +
+                       '  ⚙ Difference Engine:    IDLE\n' +
+                       '  ⚙ Output Printer:       READY\n' +
+                       '  ⚙ Mechanical Memory:    74% CAPACITY\n\n' +
+                       '  Status: All systems functioning properly.';
+            },
+            pressure: () => {
+                const pressure = (Math.random() * 3 + 12).toFixed(1);
+                return '<span class="brass-label">GAUGE</span>Steam Pressure Reading:\n\n' +
+                       '     ┌─────────────────────┐\n' +
+                       '     │   ⚙ PRESSURE ⚙     │\n' +
+                       '     │                     │\n' +
+                       '     │   ' + pressure + ' PSI          │\n' +
+                       '     │                     │\n' +
+                       '     │   ██████████░░░░░   │\n' +
+                       '     └─────────────────────┘\n\n' +
+                       '  Status: OPTIMAL FOR COMPUTATION';
+            },
+            gears: () => {
+                return '<span class="brass-label">MECHANISM</span>Gear Status:\n\n' +
+                       '  Primary Gear (100T):    ⚙ Rotating at 60 RPM\n' +
+                       '  Secondary Gear (50T):   ⚙ Rotating at 120 RPM\n' +
+                       '  Calculation Drum:       ⚙ Position 127\n' +
+                       '  Transfer Mechanism:     ⚙ Engaged\n' +
+                       '  Reduction Gears (4:1):  ⚙ Operational\n\n' +
+                       '  Lubrication: ADEQUATE\n' +
+                       '  Wear Level: MINIMAL\n' +
+                       '  Last Maintenance: 3 days ago';
+            },
+            punch: () => {
+                return '<span class="brass-label">PUNCH CARD</span>Punch Card Operations:\n\n' +
+                       '  Cards Loaded:     250\n' +
+                       '  Cards Processed:  183\n' +
+                       '  Cards Remaining:  67\n\n' +
+                       '  Current Program:\n' +
+                       '  ┌──────────────────────┐\n' +
+                       '  │ ● ○ ● ● ○ ● ○ ●     │\n' +
+                       '  │ ○ ● ○ ● ● ○ ● ○     │\n' +
+                       '  │ ● ● ○ ○ ● ● ○ ●     │\n' +
+                       '  └──────────────────────┘\n\n' +
+                       '  Status: READING';
+            },
+            telegraph: () => {
+                const messages = [
+                    'CALCULATION COMPLETE STOP',
+                    'AWAITING INSTRUCTIONS STOP',
+                    'SYSTEM OPERATIONAL STOP',
+                    'READY FOR INPUT STOP'
+                ];
+                const msg = messages[Math.floor(Math.random() * messages.length)];
+                return '<span class="brass-label">TELEGRAPH</span>Sending Message:\n\n' +
+                       '  -·-· --- -· -· · -·-· -\n\n' +
+                       '  Message: ' + msg + '\n\n' +
+                       '  ⚡ Transmission: SENT\n' +
+                       '  ⚡ Signal Strength: STRONG';
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput('⚙ COMMAND: ' + cmd, 'brass');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, '', true);
+                } else if (cmd) {
+                    addOutput('<span class="brass-label">ERROR</span>Unknown command: ' + command + '\nConsult the manual with "help".', '', true);
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '', isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.textContent = text;
+            }
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('╔════════════════════════════════════════════════╗', 'brass');
+        addOutput('║                                                ║', 'brass');
+        addOutput('║    ANALYTICAL ENGINE TERMINAL SYSTEM           ║', 'brass');
+        addOutput('║    Model: Babbage Mk. IV                       ║', 'brass');
+        addOutput('║                                                ║', 'brass');
+        addOutput('╚════════════════════════════════════════════════╝', 'brass');
+        addOutput('', '');
+        addOutput('⚙ Initializing mechanical systems...', 'copper');
+        addOutput('⚙ Engaging primary gear train...', 'copper');
+        addOutput('⚙ Building steam pressure...', 'copper');
+        addOutput('⚙ Loading punch card reader...', 'copper');
+        addOutput('', '');
+        addOutput('<span class="brass-label">READY</span>Analytical Engine is operational.', '', true);
+        addOutput('Type "help" for available commands.', '');
+    </script>
+</body>
+</html>
