@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holographic Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: radial-gradient(ellipse at center, #0d1b2a 0%, #000000 100%);
+            color: #00d9ff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+        .container {
+            position: relative;
+        }
+        .terminal {
+            width: 880px;
+            height: 620px;
+            background: linear-gradient(135deg,
+                rgba(0, 217, 255, 0.03) 0%,
+                rgba(0, 100, 255, 0.05) 50%,
+                rgba(0, 217, 255, 0.03) 100%);
+            border: 2px solid rgba(0, 217, 255, 0.6);
+            border-radius: 15px;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow:
+                0 0 30px rgba(0, 217, 255, 0.4),
+                0 0 60px rgba(0, 100, 255, 0.2),
+                inset 0 0 40px rgba(0, 217, 255, 0.1);
+            position: relative;
+            backdrop-filter: blur(5px);
+            transform: rotateX(2deg);
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: rotateX(2deg) translateY(0px); }
+            50% { transform: rotateX(2deg) translateY(-10px); }
+        }
+        .terminal::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg,
+                transparent 40%,
+                rgba(0, 217, 255, 0.1) 50%,
+                transparent 60%);
+            border-radius: 15px;
+            z-index: -1;
+            animation: shimmer 3s linear infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .terminal::after {
+            content: 'HOLOGRAPHIC INTERFACE v3.141';
+            position: absolute;
+            top: 8px;
+            left: 25px;
+            font-size: 11px;
+            color: rgba(0, 217, 255, 0.7);
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+            letter-spacing: 2px;
+        }
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(0, 217, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 217, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            border-radius: 15px;
+        }
+        #content {
+            margin-top: 25px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #00d9ff;
+            text-shadow: 0 0 8px rgba(0, 217, 255, 0.8);
+            animation: holoAppear 0.5s ease-out;
+            line-height: 1.5;
+        }
+        @keyframes holoAppear {
+            0% {
+                opacity: 0;
+                transform: translateZ(-50px);
+                filter: blur(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateZ(0);
+                filter: blur(0);
+            }
+        }
+        .output.highlight {
+            color: #00ffff;
+            text-shadow: 0 0 15px rgba(0, 255, 255, 1);
+        }
+        .input-line {
+            display: flex;
+            margin-top: 15px;
+        }
+        .prompt {
+            color: #00ffff;
+            margin-right: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            font-weight: bold;
+            animation: promptPulse 3s ease-in-out infinite;
+        }
+        @keyframes promptPulse {
+            0%, 100% {
+                text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            }
+            50% {
+                text-shadow: 0 0 20px rgba(0, 255, 255, 1), 0 0 30px rgba(0, 255, 255, 0.5);
+            }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #00d9ff;
+            font-family: 'Courier New', monospace;
+            font-size: 17px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 5px rgba(0, 217, 255, 0.8);
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 22px;
+            background: linear-gradient(180deg, #00d9ff, #00ffff);
+            animation: holoBlink 1s infinite;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+        }
+        @keyframes holoBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00d9ff;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #00d9ff;
+            animation: particleFloat 10s infinite;
+        }
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    <div class="container">
+        <div class="terminal">
+            <div class="grid-overlay"></div>
+            <div id="content">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">◈</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Create floating particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 10 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Terminal logic
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: '◈ HOLOGRAPHIC INTERFACE COMMANDS ◈\n\n' +
+                  '  initialize  - Initialize ship systems\n' +
+                  '  status      - Display system status\n' +
+                  '  scan        - Scan for nearby vessels\n' +
+                  '  navigate    - Plot navigation course\n' +
+                  '  shield      - Shield status and control\n' +
+                  '  weapons     - Weapons system status\n' +
+                  '  comms       - Communications array\n' +
+                  '  clear       - Clear display\n' +
+                  '  echo [msg]  - Display message',
+            initialize: () => {
+                return '◈ Initializing ship systems...\n\n' +
+                       '[████████████████████] 100%\n\n' +
+                       '✓ Life Support: ONLINE\n' +
+                       '✓ Navigation: ONLINE\n' +
+                       '✓ Propulsion: ONLINE\n' +
+                       '✓ Shields: ONLINE\n' +
+                       '✓ Weapons: ONLINE\n\n' +
+                       'All systems operational. Ready for departure.';
+            },
+            status: () => {
+                return '◈ SHIP STATUS REPORT ◈\n\n' +
+                       '  Hull Integrity:    ████████░░  87%\n' +
+                       '  Shield Strength:   ██████████  100%\n' +
+                       '  Power Levels:      █████████░  94%\n' +
+                       '  Fuel Reserves:     ████████░░  82%\n' +
+                       '  Oxygen Levels:     ██████████  100%\n\n' +
+                       '  Status: OPERATIONAL';
+            },
+            scan: () => {
+                const vessels = [
+                    'UES Horizon - Cargo Freighter - 2.4 AU',
+                    'Unknown Signal - Unknown Type - 5.7 AU',
+                    'RSS Pioneer - Research Vessel - 8.1 AU'
+                ];
+                return '◈ Scanning sector...\n\n' +
+                       'Contacts detected:\n\n' +
+                       vessels.map((v, i) => `  ${i + 1}. ${v}`).join('\n') +
+                       '\n\nScan complete.';
+            },
+            navigate: () => {
+                const destinations = ['Alpha Centauri', 'Proxima Station', 'Kepler-442b', 'New Terra'];
+                const dest = destinations[Math.floor(Math.random() * destinations.length)];
+                return `◈ Navigation System Active\n\n` +
+                       `Plotting course to: ${dest}\n` +
+                       `Estimated travel time: ${Math.floor(Math.random() * 48 + 12)} hours\n` +
+                       `Jump drive charging...\n\n` +
+                       `Course locked. Ready for jump.`;
+            },
+            shield: '◈ SHIELD CONTROL ◈\n\n  Forward:  ██████████  100%\n  Aft:      ██████████  100%\n  Port:     ██████████  100%\n  Starboard:██████████  100%\n\n  Shield generators: OPTIMAL',
+            weapons: '◈ WEAPONS ARRAY ◈\n\n  Plasma Cannons:     ARMED\n  Torpedo Bay:        READY\n  Point Defense:      ACTIVE\n  Railgun Battery:    CHARGED\n\n  All weapons systems ready.',
+            comms: () => {
+                const messages = [
+                    '"This is Station Omega. You are clear for docking."',
+                    '"Unknown vessel, identify yourself immediately."',
+                    '"Receiving distress signal from sector 7..."'
+                ];
+                return '◈ COMMUNICATIONS ARRAY ◈\n\n' +
+                       'Incoming transmission:\n\n' +
+                       messages[Math.floor(Math.random() * messages.length)];
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`◈ ${cmd}`, false);
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, true);
+                } else if (cmd) {
+                    addOutput(`⚠ Unknown command: "${command}"\nType "help" for available commands.`, false);
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, highlight = false) {
+            const div = document.createElement('div');
+            div.className = highlight ? 'output highlight' : 'output';
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        addOutput('╔═══════════════════════════════════════════════════════════╗', true);
+        addOutput('║     HOLOGRAPHIC INTERFACE SYSTEM v3.141                   ║', true);
+        addOutput('║     Quantum Core: ACTIVE | Neural Link: ESTABLISHED      ║', true);
+        addOutput('╚═══════════════════════════════════════════════════════════╝', true);
+        addOutput('');
+        addOutput('Welcome, Commander. Type "help" for available commands.');
+    </script>
+</body>
+</html>
