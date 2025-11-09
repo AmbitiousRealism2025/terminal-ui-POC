@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Consolas', monospace;
+            background: #fafafa;
+            color: #2d3436;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .zen-container {
+            width: 840px;
+            height: 580px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.06),
+                0 8px 24px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .zen-container:hover {
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.08),
+                0 12px 32px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        .terminal {
+            height: 100%;
+            padding: 40px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.8;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 6px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: #dfe6e9;
+            border-radius: 3px;
+        }
+        .terminal::-webkit-scrollbar-thumb:hover {
+            background: #b2bec3;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 16px;
+            color: #2d3436;
+            animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .output.muted {
+            color: #636e72;
+        }
+        .output.accent {
+            color: #0984e3;
+        }
+        .output.success {
+            color: #00b894;
+        }
+        .output.warning {
+            color: #fdcb6e;
+        }
+        .section-title {
+            font-weight: 600;
+            color: #2d3436;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .input-wrapper {
+            margin-top: 20px;
+            position: relative;
+        }
+        .input-line {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+        }
+        .prompt {
+            color: #0984e3;
+            margin-right: 12px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #f0f0f0;
+            color: #2d3436;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Consolas', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            padding: 8px 0;
+            transition: border-color 0.3s ease;
+        }
+        #input:focus {
+            border-bottom-color: #0984e3;
+        }
+        #input::placeholder {
+            color: #b2bec3;
+        }
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 18px;
+            background-color: #0984e3;
+            animation: zenBlink 1.5s ease-in-out infinite;
+            margin-left: 2px;
+        }
+        @keyframes zenBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 4px;
+        }
+        .pill.blue {
+            background: #e3f2fd;
+            color: #0984e3;
+        }
+        .pill.green {
+            background: #e8f5e9;
+            color: #00b894;
+        }
+        .pill.gray {
+            background: #f5f5f5;
+            color: #636e72;
+        }
+        .task-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+        }
+        .task-item:hover {
+            padding-left: 8px;
+            background: #fafafa;
+        }
+        .task-item:last-child {
+            border-bottom: none;
+        }
+        .quote {
+            font-style: italic;
+            color: #636e72;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-left: 4px solid #0984e3;
+            border-radius: 4px;
+        }
+        .metric {
+            display: inline-block;
+            margin-right: 24px;
+            margin-bottom: 8px;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #636e72;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d3436;
+        }
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #dfe6e9, transparent);
+            margin: 24px 0;
+        }
+        .breathe {
+            animation: breathe 4s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="zen-container">
+        <div class="terminal">
+            <div id="output"></div>
+            <div class="input-wrapper">
+                <div class="input-line">
+                    <span class="prompt">›</span>
+                    <input type="text" id="input" placeholder="Enter command..." autofocus>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return '<span class="pill blue">Commands</span>\n\n' +
+                       '  help        Show available commands\n' +
+                       '  focus       Enter focus mode\n' +
+                       '  tasks       View your tasks\n' +
+                       '  goals       Display your goals\n' +
+                       '  metrics     Show productivity metrics\n' +
+                       '  breathe     Breathing exercise\n' +
+                       '  quote       Random inspirational quote\n' +
+                       '  time        Current time and date\n' +
+                       '  journal     Quick journal entry\n' +
+                       '  clear       Clear the terminal\n' +
+                       '  echo        Echo a message';
+            },
+
+            focus: () => {
+                return '<span class="pill blue">Focus Mode</span>\n\n' +
+                       '○ Entering deep work mode...\n\n' +
+                       '  Duration: 25 minutes (Pomodoro)\n' +
+                       '  Notifications: Silenced\n' +
+                       '  Distractions: Minimized\n\n' +
+                       '  "The present moment is filled with joy and happiness.\n' +
+                       '   If you are attentive, you will see it." — Thich Nhat Hanh\n\n' +
+                       '○ Focus session started.';
+            },
+
+            tasks: () => {
+                const tasks = [
+                    { task: 'Review terminal UI designs', priority: 'high', done: false },
+                    { task: 'Write documentation', priority: 'medium', done: false },
+                    { task: 'Refactor authentication module', priority: 'high', done: true },
+                    { task: 'Team sync meeting at 2pm', priority: 'low', done: false },
+                    { task: 'Deploy to staging', priority: 'medium', done: true }
+                ];
+
+                let result = '<span class="pill blue">Tasks</span>\n\n';
+                tasks.forEach((t, i) => {
+                    const status = t.done ? '✓' : '○';
+                    const style = t.done ? 'muted' : '';
+                    const priority = t.priority === 'high' ? '🔴' : t.priority === 'medium' ? '🟡' : '🟢';
+                    result += `  ${status} ${t.task} ${priority}\n`;
+                });
+                return result;
+            },
+
+            goals: () => {
+                return '<span class="pill green">Goals</span>\n\n' +
+                       '  Weekly Goals\n' +
+                       '  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       '  ○ Complete 5 terminal designs       ████████░░  80%\n' +
+                       '  ○ Ship new feature to production    ██████░░░░  60%\n' +
+                       '  ○ Write 3 blog posts                ████░░░░░░  40%\n' +
+                       '  ○ Exercise 5 times                  ██████████  100%\n\n' +
+                       '  Monthly Goals\n' +
+                       '  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       '  ○ Launch new project                ████░░░░░░  40%\n' +
+                       '  ○ Learn new framework               ██████░░░░  60%\n' +
+                       '  ○ Contribute to open source         ███░░░░░░░  30%';
+            },
+
+            metrics: () => {
+                return '<span class="pill blue">Metrics</span>\n\n' +
+                       '  <span class="metric"><span class="metric-label">Tasks Completed</span><br><span class="metric-value">24</span></span>' +
+                       '  <span class="metric"><span class="metric-label">Focus Hours</span><br><span class="metric-value">18.5</span></span>' +
+                       '  <span class="metric"><span class="metric-label">Productivity</span><br><span class="metric-value">87%</span></span>\n\n' +
+                       '  This Week\n' +
+                       '  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                       '  Mon  ████████░░  8 hrs\n' +
+                       '  Tue  ██████████  10 hrs\n' +
+                       '  Wed  ████████░░  8 hrs\n' +
+                       '  Thu  ██████░░░░  6 hrs\n' +
+                       '  Fri  ████████░░  8 hrs\n\n' +
+                       '  Total: 40 hours of focused work';
+            },
+
+            breathe: () => {
+                return '<span class="pill green">Breathe</span>\n\n' +
+                       '  Take a moment to breathe...\n\n' +
+                       '  ○ Inhale slowly for 4 seconds\n' +
+                       '  ○ Hold for 4 seconds\n' +
+                       '  ○ Exhale slowly for 4 seconds\n' +
+                       '  ○ Hold for 4 seconds\n\n' +
+                       '  Repeat 3 times.\n\n' +
+                       '  "Feelings come and go like clouds in a windy sky.\n' +
+                       '   Conscious breathing is my anchor." — Thich Nhat Hanh';
+            },
+
+            quote: () => {
+                const quotes = [
+                    '"Simplicity is the ultimate sophistication." — Leonardo da Vinci',
+                    '"The secret of getting ahead is getting started." — Mark Twain',
+                    '"Focus on being productive instead of busy." — Tim Ferriss',
+                    '"Quality is not an act, it is a habit." — Aristotle',
+                    '"Do not wait; the time will never be \'just right\'." — Napoleon Hill',
+                    '"The way to get started is to quit talking and begin doing." — Walt Disney',
+                    '"Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away." — Antoine de Saint-Exupéry'
+                ];
+                const quote = quotes[Math.floor(Math.random() * quotes.length)];
+                return `<div class="quote">${quote}</div>`;
+            },
+
+            time: () => {
+                const now = new Date();
+                const time = now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                const date = now.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                return `<span class="pill gray">Time</span>\n\n` +
+                       `  ${time}\n` +
+                       `  ${date}\n\n` +
+                       `  "Time is what we want most, but what we use worst." — William Penn`;
+            },
+
+            journal: () => {
+                return '<span class="pill blue">Journal</span>\n\n' +
+                       '  Quick Reflection:\n\n' +
+                       '  What went well today?\n' +
+                       '  ○ Completed terminal designs\n' +
+                       '  ○ Had a productive focus session\n' +
+                       '  ○ Helped a colleague with debugging\n\n' +
+                       '  What could be improved?\n' +
+                       '  ○ Better time management\n' +
+                       '  ○ More breaks between sessions\n\n' +
+                       '  Gratitude:\n' +
+                       '  ○ Thankful for creative challenges\n' +
+                       '  ○ Appreciative of supportive team';
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                if (cmd) {
+                    addOutput(`› ${cmd}`, 'muted');
+                }
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, '', true);
+                } else if (cmd) {
+                    addOutput(`Command not found: ${command}\nType 'help' to see available commands.`, 'muted');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '', isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.textContent = text;
+            }
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Welcome message
+        addOutput('Zen Terminal', 'section-title', true);
+        addOutput('A minimalist space for focused work and mindful productivity.', 'muted');
+        addOutput('');
+        addOutput('Type <span style="color: #0984e3; font-weight: 600;">help</span> to see available commands.', '', true);
+        addOutput('');
+        addOutput('<div class="divider"></div>', '', true);
+    </script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Amber Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.95; }
+        }
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background-color: #000000;
+            color: #ffb000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .crt-container {
+            width: 900px;
+            height: 650px;
+            background: #0a0a0a;
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            box-shadow: 0 0 80px rgba(255, 176, 0, 0.3);
+        }
+        .crt-screen {
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            border: 15px solid #1a1a1a;
+            border-radius: 5px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 100px rgba(255, 176, 0, 0.1);
+        }
+        .crt-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15) 0px,
+                transparent 1px,
+                transparent 2px,
+                rgba(0, 0, 0, 0.15) 3px
+            );
+            pointer-events: none;
+            z-index: 2;
+            animation: flicker 0.15s infinite;
+        }
+        .crt-screen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .power-led {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 10px;
+            height: 10px;
+            background: #00ff00;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00ff00;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .terminal {
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            z-index: 3;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 12px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: #000000;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: #ffb000;
+            border-radius: 6px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #ffb000;
+            text-shadow:
+                0 0 5px #ffb000,
+                0 0 10px #ff8800;
+            font-size: 20px;
+            line-height: 1.4;
+            animation: scanline 0.1s ease-in;
+        }
+        @keyframes scanline {
+            from {
+                opacity: 0;
+                text-shadow: 0 0 20px #ffb000;
+            }
+            to {
+                opacity: 1;
+                text-shadow: 0 0 5px #ffb000, 0 0 10px #ff8800;
+            }
+        }
+        .output.bright {
+            color: #ffd700;
+            text-shadow:
+                0 0 8px #ffd700,
+                0 0 15px #ffb000;
+        }
+        .output.dim {
+            color: #cc8800;
+            text-shadow: 0 0 3px #cc8800;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 12px;
+            position: relative;
+            z-index: 3;
+        }
+        .prompt {
+            color: #ffb000;
+            margin-right: 10px;
+            text-shadow:
+                0 0 5px #ffb000,
+                0 0 10px #ff8800;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ffb000;
+            font-family: 'VT323', 'Courier New', monospace;
+            font-size: 20px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow:
+                0 0 5px #ffb000,
+                0 0 10px #ff8800;
+        }
+        .cursor {
+            display: inline-block;
+            width: 12px;
+            height: 24px;
+            background-color: #ffb000;
+            animation: blink 1s step-end infinite;
+            box-shadow: 0 0 10px #ffb000;
+        }
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .boot-text {
+            color: #ffb000;
+            font-size: 18px;
+        }
+        .header-text {
+            text-align: center;
+            font-size: 22px;
+            margin-bottom: 15px;
+            text-shadow:
+                0 0 10px #ffb000,
+                0 0 20px #ff8800;
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-container">
+        <div class="crt-screen">
+            <div class="terminal">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">C:\&gt;</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+        </div>
+        <div class="power-led"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return 'AVAILABLE COMMANDS:\n' +
+                       '------------------------------------\n' +
+                       '  HELP      - Display this message\n' +
+                       '  DIR       - List directory\n' +
+                       '  TYPE      - Display file contents\n' +
+                       '  DATE      - Show current date\n' +
+                       '  TIME      - Show current time\n' +
+                       '  VER       - Display version\n' +
+                       '  MEM       - Memory information\n' +
+                       '  CLS       - Clear screen\n' +
+                       '  ECHO      - Echo message\n' +
+                       '  GAMES     - List available games\n' +
+                       '  CREDITS   - Show credits';
+            },
+            dir: () => {
+                return ' Volume in drive C is SYSTEM\n' +
+                       ' Volume Serial Number is 1A2B-3C4D\n\n' +
+                       ' Directory of C:\\\n\n' +
+                       'AUTOEXEC BAT     256  01-15-85  12:00a\n' +
+                       'CONFIG   SYS     128  01-15-85  12:00a\n' +
+                       'COMMAND  COM   25307  01-15-85  12:00a\n' +
+                       'DOS          <DIR>    01-15-85  12:00a\n' +
+                       'GAMES        <DIR>    01-15-85  12:00a\n' +
+                       'SYSTEM       <DIR>    01-15-85  12:00a\n' +
+                       'README   TXT    1024  01-15-85  12:00a\n' +
+                       '        5 file(s)      26715 bytes\n' +
+                       '        3 dir(s)   327680000 bytes free';
+            },
+            type: (args) => {
+                if (!args.length) {
+                    return 'Required parameter missing';
+                }
+                if (args[0].toLowerCase() === 'readme.txt') {
+                    return '╔════════════════════════════════════╗\n' +
+                           '║  AMBER TERMINAL SYSTEM v1.0        ║\n' +
+                           '║  Classic Computing Experience      ║\n' +
+                           '║  (C) 1985 RetroSystems Inc.        ║\n' +
+                           '╚════════════════════════════════════╝\n\n' +
+                           'Welcome to the classic computing era!\n' +
+                           'This system emulates the golden age\n' +
+                           'of monochrome CRT terminals.';
+                }
+                return 'File not found: ' + args[0];
+            },
+            date: () => {
+                const now = new Date();
+                return 'Current date is ' + now.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            },
+            time: () => {
+                const now = new Date();
+                return 'Current time is ' + now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+            },
+            ver: () => {
+                return 'Amber Terminal OS Version 1.0\n' +
+                       'Classic Edition (C) RetroSystems 1985';
+            },
+            mem: () => {
+                const used = Math.floor(Math.random() * 200) + 400;
+                const total = 640;
+                return `Memory Status:\n\n` +
+                       `  Total RAM:       ${total} KB\n` +
+                       `  Used:            ${used} KB\n` +
+                       `  Available:       ${total - used} KB\n` +
+                       `  Extended:        0 KB\n` +
+                       `  Expanded:        0 KB`;
+            },
+            cls: () => {
+                output.innerHTML = '';
+                return '';
+            },
+            echo: (args) => args.join(' '),
+            games: () => {
+                return 'AVAILABLE GAMES:\n' +
+                       '------------------------------------\n' +
+                       '  [1] ADVENTURE.EXE\n' +
+                       '  [2] ZORK.EXE\n' +
+                       '  [3] PACMAN.EXE\n' +
+                       '  [4] TETRIS.EXE\n' +
+                       '  [5] SNAKE.EXE\n\n' +
+                       'Type game name to launch (simulated)';
+            },
+            credits: () => {
+                return '╔════════════════════════════════════╗\n' +
+                       '║         SYSTEM CREDITS             ║\n' +
+                       '╠════════════════════════════════════╣\n' +
+                       '║  Terminal Design: Agent 1          ║\n' +
+                       '║  Phosphor Glow: Authentic          ║\n' +
+                       '║  Scanlines: Enabled                ║\n' +
+                       '║  Nostalgia Level: Maximum          ║\n' +
+                       '╚════════════════════════════════════╝';
+            }
+        };
+
+        // Command aliases
+        commands.clear = commands.cls;
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`C:\\> ${cmd}`, 'bright');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result);
+                } else if (cmd) {
+                    addOutput(`Bad command or file name: ${parts[0]}`, 'dim');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        function bootSequence() {
+            const bootMessages = [
+                ['BIOS Version 1.0', 100],
+                ['Copyright (C) 1985 RetroSystems Inc.', 100],
+                ['', 50],
+                ['RAM Test: 640K OK', 150],
+                ['Keyboard...............OK', 100],
+                ['Disk Drives............OK', 100],
+                ['Serial Ports...........OK', 100],
+                ['', 50],
+                ['Loading AMBER TERMINAL OS...', 200],
+                ['', 100],
+                ['╔════════════════════════════════════╗', 0],
+                ['║   AMBER TERMINAL SYSTEM v1.0       ║', 0],
+                ['║   The Classic Computing Experience ║', 0],
+                ['╚════════════════════════════════════╝', 0],
+                ['', 0],
+                ['Type HELP for available commands', 0],
+                ['', 0]
+            ];
+
+            let delay = 0;
+            bootMessages.forEach(([msg, wait]) => {
+                setTimeout(() => {
+                    addOutput(msg, 'boot-text');
+                }, delay);
+                delay += wait;
+            });
+        }
+
+        bootSequence();
+    </script>
+</body>
+</html>

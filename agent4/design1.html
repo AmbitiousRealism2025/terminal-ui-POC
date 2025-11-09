@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Amber Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', 'Courier', monospace;
+            background: #000000;
+            color: #ffb000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .crt-container {
+            width: 920px;
+            height: 680px;
+            background: #0d0d0d;
+            border: 20px solid #2a2a2a;
+            border-radius: 15px;
+            box-shadow:
+                0 0 100px rgba(255, 176, 0, 0.3),
+                inset 0 0 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .crt-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 2;
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+        }
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+        .terminal {
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            padding: 30px;
+            overflow-y: auto;
+            font-size: 16px;
+            line-height: 1.4;
+            position: relative;
+            z-index: 1;
+        }
+        .terminal::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+            pointer-events: none;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 10px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: #0d0d0d;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: #ffb000;
+            border-radius: 5px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ffb000;
+            text-shadow: 0 0 10px #ffb000;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #ffb000;
+            text-shadow: 0 0 8px rgba(255, 176, 0, 0.8);
+            animation: amberGlow 0.3s ease-in;
+        }
+        @keyframes amberGlow {
+            from {
+                opacity: 0;
+                text-shadow: 0 0 20px #ffb000;
+            }
+            to {
+                opacity: 1;
+                text-shadow: 0 0 8px rgba(255, 176, 0, 0.8);
+            }
+        }
+        .output.system {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        .output.error {
+            color: #ff6b00;
+            animation: errorFlash 0.5s ease-in-out;
+        }
+        @keyframes errorFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .input-line {
+            display: flex;
+            margin-top: 12px;
+        }
+        .prompt {
+            color: #ffb000;
+            margin-right: 8px;
+            text-shadow: 0 0 10px #ffb000;
+            font-weight: bold;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ffb000;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 8px rgba(255, 176, 0, 0.8);
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background-color: #ffb000;
+            animation: amberBlink 1s infinite;
+            box-shadow: 0 0 10px #ffb000;
+        }
+        @keyframes amberBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .ascii-art {
+            color: #ff8c00;
+            text-shadow: 0 0 5px #ff8c00;
+            line-height: 1.2;
+        }
+        .flicker {
+            animation: flicker 3s infinite;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            41%, 43% { opacity: 0.8; }
+            45%, 47% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-container">
+        <div class="terminal">
+            <div class="header flicker">
+                ╔═══════════════════════════════════════════════════════════════╗<br>
+                ║           RETRO COMPUTING TERMINAL SYSTEM v3.14              ║<br>
+                ║              VINTAGE AMBER PHOSPHOR DISPLAY                  ║<br>
+                ║                  Est. 1985 - Still Running                   ║<br>
+                ╚═══════════════════════════════════════════════════════════════╝
+            </div>
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">C:\&gt;</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const asciiLogo = `
+    ██████╗ ███████╗████████╗██████╗  ██████╗
+    ██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔═══██╗
+    ██████╔╝█████╗     ██║   ██████╔╝██║   ██║
+    ██╔══██╗██╔══╝     ██║   ██╔══██╗██║   ██║
+    ██║  ██║███████╗   ██║   ██║  ██║╚██████╔╝
+    ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝
+        `;
+
+        const commands = {
+            help: `AVAILABLE COMMANDS:
+
+  SYSTEM COMMANDS:
+    help      - Display this help message
+    dir       - List directory contents
+    cls       - Clear screen
+    ver       - Show system version
+    time      - Display current time
+    date      - Display current date
+
+  UTILITY COMMANDS:
+    ascii     - Display ASCII art
+    mem       - Show memory status
+    boot      - Simulate boot sequence
+    fortune   - Get a random fortune
+    calc      - Simple calculator
+    echo      - Echo message back
+
+  RETRO COMMANDS:
+    load      - Load vintage program
+    nostalgia - Trip down memory lane`,
+
+            dir: () => {
+                return `Volume in drive C is RETRO-DOS
+ Volume Serial Number is 1985-ABCD
+
+ Directory of C:\\USERS\\TERMINAL
+
+02/14/1985  09:30a    <DIR>          .
+02/14/1985  09:30a    <DIR>          ..
+06/15/1987  02:15p            12,456 AUTOEXEC.BAT
+06/15/1987  02:15p             4,096 CONFIG.SYS
+11/22/1989  11:45a            34,567 COMMAND.COM
+03/14/1992  04:20p    <DIR>          GAMES
+09/05/1994  08:15a    <DIR>          PROGRAMS
+05/18/1996  01:30p            89,234 README.TXT
+              4 File(s)        140,353 bytes
+              4 Dir(s)   512,000,000 bytes free`;
+            },
+
+            cls: () => { output.innerHTML = ''; return ''; },
+
+            ver: `RETRO-DOS Version 3.14
+Copyright (C) 1985-2024 Vintage Computing Corp.
+Licensed to: AMBER TERMINAL USER`,
+
+            time: () => {
+                const now = new Date();
+                return `Current time is: ${now.toLocaleTimeString()}
+Enter new time: _`;
+            },
+
+            date: () => {
+                const now = new Date();
+                return `Current date is: ${now.toDateString()}
+Enter new date (mm-dd-yy): _`;
+            },
+
+            ascii: () => {
+                return asciiLogo;
+            },
+
+            mem: () => {
+                const total = 640;
+                const used = Math.floor(Math.random() * 200 + 300);
+                const free = total - used;
+                return `Memory Type        Total       Used       Free
+────────────────────────────────────────────
+Base Memory:        ${total}K       ${used}K       ${free}K
+Extended Memory:  15360K     8192K     7168K
+────────────────────────────────────────────
+Largest executable program size: ${free}K`;
+            },
+
+            boot: () => {
+                return `Starting RETRO-DOS...
+
+BIOS Version 3.14.1985
+Memory Test: 640K OK
+Extended Memory: 15360K OK
+
+Loading COMMAND.COM...
+Loading AUTOEXEC.BAT...
+Loading CONFIG.SYS...
+
+████████████████████████ 100%
+
+System Ready.`;
+            },
+
+            fortune: () => {
+                const fortunes = [
+                    "The best way to predict the future is to invent it. - Alan Kay",
+                    "Any sufficiently advanced technology is indistinguishable from magic.",
+                    "In the beginning, there was nothing. And the Universe said 'Hello, World!'",
+                    "There are only 10 types of people: those who understand binary and those who don't.",
+                    "A computer lets you make more mistakes faster than any invention in history.",
+                    "To err is human, but to really foul things up requires a computer.",
+                    "640K ought to be enough for anybody. - Not really Bill Gates",
+                    "Real programmers don't comment their code. If it was hard to write, it should be hard to read."
+                ];
+                return fortunes[Math.floor(Math.random() * fortunes.length)];
+            },
+
+            calc: (args) => {
+                if (args.length === 0) {
+                    return 'Usage: calc <expression>\nExample: calc 2+2';
+                }
+                try {
+                    const expr = args.join('').replace(/[^0-9+\-*/().]/g, '');
+                    const result = eval(expr);
+                    return `Result: ${result}`;
+                } catch (e) {
+                    return 'Error: Invalid expression';
+                }
+            },
+
+            load: () => {
+                return `Loading PROGRAM.EXE...
+
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  0%
+████░░░░░░░░░░░░░░░░░░░░░░░░░░ 15%
+████████░░░░░░░░░░░░░░░░░░░░░░ 30%
+████████████░░░░░░░░░░░░░░░░░░ 45%
+████████████████░░░░░░░░░░░░░░ 60%
+████████████████████░░░░░░░░░░ 75%
+████████████████████████░░░░░░ 90%
+██████████████████████████████ 100%
+
+Program loaded successfully!
+Press any key to continue...`;
+            },
+
+            nostalgia: () => {
+                return `Remember when...
+
+• Floppy disks were actually floppy?
+• 640KB of RAM was considered excessive?
+• Dial-up modems sang the song of their people?
+• Screen savers actually saved screens?
+• "Turbo" buttons made computers slower?
+• Games came on 47 floppy disks?
+• You had to configure IRQ and DMA settings?
+• Blowing on cartridges fixed everything?
+
+Those were the days! `;
+            },
+
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`C:\\> ${cmd}`, 'system');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result);
+                } else if (cmd) {
+                    addOutput(`Bad command or file name: ${command}`, 'error');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('System BIOS v3.14.1985', 'system');
+        addOutput('Memory test: 640K OK', 'system');
+        addOutput('');
+        addOutput('RETRO-DOS Version 3.14');
+        addOutput('Copyright (C) 1985-2024 Vintage Computing Corp.');
+        addOutput('');
+        addOutput('Welcome to the AMBER TERMINAL!');
+        addOutput('Type "help" for available commands or "nostalgia" for a trip down memory lane.');
+        addOutput('');
+    </script>
+</body>
+</html>

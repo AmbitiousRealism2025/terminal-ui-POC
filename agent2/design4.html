@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII RPG Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .game-container {
+            width: 920px;
+            height: 680px;
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            border: 3px solid #e94560;
+            border-radius: 8px;
+            box-shadow:
+                0 0 20px rgba(233, 69, 96, 0.3),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(233, 69, 96, 0.1);
+            border-bottom: 2px solid #e94560;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title {
+            font-size: 20px;
+            color: #e94560;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+        .stat {
+            color: #00d9ff;
+        }
+        .terminal {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .terminal::-webkit-scrollbar {
+            width: 10px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: rgba(233, 69, 96, 0.5);
+            border-radius: 5px;
+        }
+        .terminal::-webkit-scrollbar-thumb:hover {
+            background: rgba(233, 69, 96, 0.7);
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #eee;
+            animation: textReveal 0.2s ease-out;
+        }
+        @keyframes textReveal {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .output.narrator {
+            color: #a8dadc;
+            font-style: italic;
+        }
+        .output.npc {
+            color: #ffd60a;
+        }
+        .output.action {
+            color: #06ffa5;
+        }
+        .output.damage {
+            color: #e94560;
+            font-weight: bold;
+        }
+        .output.system {
+            color: #888;
+            font-size: 13px;
+        }
+        .ascii-art {
+            color: #e94560;
+            line-height: 1.2;
+            margin: 10px 0;
+        }
+        .input-line {
+            display: flex;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 2px solid rgba(233, 69, 96, 0.3);
+        }
+        .prompt {
+            color: #e94560;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        #input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            border-radius: 4px;
+            color: #eee;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            padding: 8px 12px;
+        }
+        #input:focus {
+            border-color: #e94560;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background-color: #e94560;
+            animation: rpgBlink 0.9s infinite;
+        }
+        @keyframes rpgBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .divider {
+            color: #555;
+            margin: 10px 0;
+        }
+        .choice {
+            color: #00d9ff;
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="title">⚔ TERMINAL QUEST ⚔</div>
+            <div class="stats">
+                <div class="stat">HP: <span id="hp">100</span></div>
+                <div class="stat">Gold: <span id="gold">50</span></div>
+                <div class="stat">Level: <span id="level">1</span></div>
+            </div>
+        </div>
+        <div class="terminal">
+            <div id="output"></div>
+        </div>
+        <div class="input-line">
+            <span class="prompt">&gt;</span>
+            <input type="text" id="input" autofocus>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        let gameState = {
+            hp: 100,
+            gold: 50,
+            level: 1,
+            location: 'town'
+        };
+
+        const asciiArt = {
+            dragon: '           ______________\n' +
+                   '       ,===:\'.,            \`-._\n' +
+                   '            `:.`---.__         `-._\n' +
+                   '              `:.     `--.         `.\n' +
+                   '                \\.        `.         `.\n' +
+                   '        (,,(,    \\.         `.   ____,-`.,\n' +
+                   '     (,\'     `/   \\.   ,--.___`.\'"\n' +
+                   ' ,  ,\'  ,--\'\'  |  \\.;\'         `\n' +
+                   '  \\/   \'.      (   /\n' +
+                   '   \`.   `\\     | /\n' +
+                   '     `.   \\ _,  ;\'\n' +
+                   '        `._\',    \'',
+
+            sword: '       />_________________________________\n' +
+                  '[########[]__________________________()\n' +
+                  '       \\>',
+
+            castle: '             T~~\n' +
+                   '             |\n' +
+                   '            /"\\\n' +
+                   '      T~~   |\'|\n' +
+                   '      |    /\'\'|\n' +
+                   '     /"\\'  |  |\n' +
+                   '     |\'|  /\'\'|\n' +
+                   '    /\'\'|  |  |\n' +
+                   '    |  |  |  |\n' +
+                   '    |  |  |  |\n' +
+                   '    |  |  |  |',
+
+            treasure: '    _________\n' +
+                     '   /         \\\n' +
+                     '  /  $ $ $ $  \\\n' +
+                     ' |   $ $ $ $   |\n' +
+                     ' |   $ $ $ $   |\n' +
+                     '  \\  $ $ $ $  /\n' +
+                     '   \\_________/'
+        };
+
+        const commands = {
+            help: () => {
+                return '═══════════ TERMINAL QUEST COMMANDS ═══════════\n\n' +
+                       '  help         Show this help message\n' +
+                       '  look         Examine your surroundings\n' +
+                       '  move [dir]   Move to a location (north/south/east/west)\n' +
+                       '  inventory    Check your inventory\n' +
+                       '  attack       Attack an enemy\n' +
+                       '  shop         Visit the shop\n' +
+                       '  quest        Check available quests\n' +
+                       '  stats        View your statistics\n' +
+                       '  rest         Rest to recover HP (costs gold)\n' +
+                       '  clear        Clear the screen\n\n' +
+                       '═══════════════════════════════════════════════';
+            },
+
+            look: () => {
+                const locations = {
+                    town: 'You are in the bustling town square.\n' +
+                          'People are going about their daily business.\n' +
+                          'You see:\n' +
+                          '  • A shop to the NORTH\n' +
+                          '  • A dark forest to the EAST\n' +
+                          '  • The castle gates to the WEST\n' +
+                          '  • The tavern to the SOUTH',
+                    forest: 'You are in a dark, mysterious forest.\n' +
+                            'Strange sounds echo through the trees.\n' +
+                            asciiArt.dragon + '\n\n' +
+                            'A dragon blocks your path!',
+                    shop: 'You enter a cozy shop filled with items.\n' +
+                          'The shopkeeper greets you warmly.\n\n' +
+                          'Items for sale:\n' +
+                          '  • Health Potion - 20 gold\n' +
+                          '  • Magic Sword - 100 gold\n' +
+                          '  • Shield - 75 gold',
+                    castle: 'You stand before the magnificent castle.\n' +
+                            asciiArt.castle + '\n\n' +
+                            'Guards stand watch at the entrance.'
+                };
+                return locations[gameState.location] || 'You are somewhere mysterious...';
+            },
+
+            move: (args) => {
+                if (!args[0]) return 'Move where? (north/south/east/west)';
+                const direction = args[0].toLowerCase();
+                const movements = {
+                    town: { north: 'shop', east: 'forest', west: 'castle', south: 'tavern' },
+                    shop: { south: 'town' },
+                    forest: { west: 'town' },
+                    castle: { east: 'town' }
+                };
+
+                const destination = movements[gameState.location]?.[direction];
+                if (destination) {
+                    gameState.location = destination;
+                    return `You travel ${direction}...\n\n` + commands.look();
+                }
+                return 'You cannot go that way.';
+            },
+
+            inventory: () => {
+                return '═══════════ INVENTORY ═══════════\n\n' +
+                       asciiArt.sword + '\n\n' +
+                       '  • Iron Sword\n' +
+                       '  • Leather Armor\n' +
+                       '  • 3x Health Potion\n' +
+                       '  • Map Fragment\n\n' +
+                       '══════════════════════════════════';
+            },
+
+            attack: () => {
+                if (gameState.location !== 'forest') {
+                    return 'There is nothing to attack here.';
+                }
+                const damage = Math.floor(Math.random() * 30 + 20);
+                const enemyDamage = Math.floor(Math.random() * 15 + 5);
+                gameState.hp -= enemyDamage;
+                gameState.gold += damage;
+                updateStats();
+
+                return '⚔ You swing your sword at the dragon!\n' +
+                       `💥 You deal ${damage} damage!\n` +
+                       `🔥 The dragon breathes fire! You take ${enemyDamage} damage!\n\n` +
+                       `Current HP: ${gameState.hp}`;
+            },
+
+            shop: () => {
+                return '═══════════ SHOP ═══════════\n\n' +
+                       'Welcome, adventurer!\n\n' +
+                       'Available items:\n' +
+                       '  [1] Health Potion - 20 gold\n' +
+                       '  [2] Magic Sword - 100 gold\n' +
+                       '  [3] Shield - 75 gold\n' +
+                       '  [4] Elixir - 50 gold\n\n' +
+                       `Your gold: ${gameState.gold}\n\n` +
+                       '════════════════════════════';
+            },
+
+            quest: () => {
+                return '═══════════ AVAILABLE QUESTS ═══════════\n\n' +
+                       '📜 [1] Slay the Dragon\n' +
+                       '   Reward: 200 gold, +1 level\n' +
+                       '   Status: In Progress\n\n' +
+                       '📜 [2] Find the Lost Treasure\n' +
+                       '   Reward: 150 gold, Magic Amulet\n' +
+                       '   Status: Not Started\n\n' +
+                       '📜 [3] Deliver Message to the Castle\n' +
+                       '   Reward: 75 gold\n' +
+                       '   Status: Available\n\n' +
+                       '════════════════════════════════════════';
+            },
+
+            stats: () => {
+                return '═══════════ CHARACTER STATS ═══════════\n\n' +
+                       `  Name:      Adventurer\n` +
+                       `  Class:     Warrior\n` +
+                       `  Level:     ${gameState.level}\n` +
+                       `  HP:        ${gameState.hp}/100\n` +
+                       `  Gold:      ${gameState.gold}\n` +
+                       `  Strength:  ${10 + gameState.level * 2}\n` +
+                       `  Defense:   ${8 + gameState.level}\n` +
+                       `  Agility:   ${12 + gameState.level}\n\n` +
+                       '═══════════════════════════════════════';
+            },
+
+            rest: () => {
+                if (gameState.gold < 10) {
+                    return 'You need at least 10 gold to rest at the inn.';
+                }
+                gameState.gold -= 10;
+                gameState.hp = 100;
+                updateStats();
+                return '💤 You rest at the inn and recover your health.\n' +
+                       'HP restored to 100!\n' +
+                       'Gold: -10';
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+
+            echo: (args) => args.join(' ')
+        };
+
+        function updateStats() {
+            document.getElementById('hp').textContent = gameState.hp;
+            document.getElementById('gold').textContent = gameState.gold;
+            document.getElementById('level').textContent = gameState.level;
+        }
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`> ${cmd}`, '');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'narrator');
+                } else if (cmd) {
+                    addOutput(`Unknown command: "${command}". Type "help" for commands.`, 'system');
+                }
+
+                addOutput('─'.repeat(60), 'divider');
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Welcome sequence
+        addOutput('═══════════════════════════════════════════════════════════', 'ascii-art');
+        addOutput('███╗   ███╗██╗███╗   ██╗ █████╗ ██╗         ██████╗ ██╗   ██╗███████╗███████╗████████╗', 'ascii-art');
+        addOutput('████╗ ████║██║████╗  ██║██╔══██╗██║        ██╔═══██╗██║   ██║██╔════╝██╔════╝╚══██╔══╝', 'ascii-art');
+        addOutput('██╔████╔██║██║██╔██╗ ██║███████║██║        ██║   ██║██║   ██║█████╗  ███████╗   ██║', 'ascii-art');
+        addOutput('██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║        ██║▄▄ ██║██║   ██║██╔══╝  ╚════██║   ██║', 'ascii-art');
+        addOutput('██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗   ╚██████╔╝╚██████╔╝███████╗███████║   ██║', 'ascii-art');
+        addOutput('╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝    ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝', 'ascii-art');
+        addOutput('═══════════════════════════════════════════════════════════', 'ascii-art');
+        addOutput('');
+        addOutput('Welcome, brave adventurer, to Terminal Quest!', 'narrator');
+        addOutput('Your journey begins in a small town...', 'narrator');
+        addOutput('');
+        addOutput('Type "help" to see available commands.', 'system');
+        addOutput('Type "look" to examine your surroundings.', 'system');
+        addOutput('─'.repeat(60), 'divider');
+    </script>
+</body>
+</html>

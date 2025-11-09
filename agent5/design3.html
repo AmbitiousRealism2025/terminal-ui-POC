@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+        .shape1 {
+            width: 300px;
+            height: 300px;
+            background: rgba(102, 126, 234, 0.5);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        .shape2 {
+            width: 250px;
+            height: 250px;
+            background: rgba(244, 107, 223, 0.5);
+            top: 60%;
+            left: 70%;
+            animation-delay: 7s;
+        }
+        .shape3 {
+            width: 200px;
+            height: 200px;
+            background: rgba(79, 172, 254, 0.5);
+            top: 40%;
+            left: 50%;
+            animation-delay: 14s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(100px, -100px) scale(1.1); }
+            66% { transform: translate(-100px, 100px) scale(0.9); }
+        }
+        .terminal-glass {
+            width: 880px;
+            height: 640px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            box-shadow:
+                0 8px 32px 0 rgba(31, 38, 135, 0.37),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            animation: glassAppear 1s ease-out;
+        }
+        @keyframes glassAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .glass-header {
+            height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .glass-button {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(1.1);
+        }
+        .glass-button.red { background: linear-gradient(135deg, #ff6b6b, #ff5252); }
+        .glass-button.yellow { background: linear-gradient(135deg, #ffd93d, #ffb700); }
+        .glass-button.green { background: linear-gradient(135deg, #6bcf7f, #51cf66); }
+        .header-title {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        .terminal {
+            height: calc(100% - 50px);
+            padding: 25px;
+            overflow-y: auto;
+            color: rgba(255, 255, 255, 0.95);
+        }
+        .terminal::-webkit-scrollbar {
+            width: 10px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+        .terminal::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+            background-clip: padding-box;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            animation: fadeInUp 0.4s ease-out;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .output.info {
+            color: rgba(79, 172, 254, 1);
+            font-weight: 600;
+        }
+        .output.success {
+            color: rgba(107, 207, 127, 1);
+            font-weight: 600;
+        }
+        .output.warning {
+            color: rgba(255, 217, 61, 1);
+            font-weight: 600;
+        }
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .prompt {
+            color: rgba(255, 255, 255, 0.9);
+            margin-right: 12px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .prompt::before {
+            content: '❯';
+            color: rgba(79, 172, 254, 1);
+            margin-right: 8px;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #input::selection {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.7);
+            animation: glassBlink 1s infinite;
+            border-radius: 2px;
+        }
+        @keyframes glassBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .badge.blue { background: rgba(79, 172, 254, 0.3); color: rgba(255, 255, 255, 1); }
+        .badge.green { background: rgba(107, 207, 127, 0.3); color: rgba(255, 255, 255, 1); }
+        .badge.purple { background: rgba(118, 75, 162, 0.3); color: rgba(255, 255, 255, 1); }
+    </style>
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+    <div class="terminal-glass">
+        <div class="glass-header">
+            <div class="header-buttons">
+                <div class="glass-button red"></div>
+                <div class="glass-button yellow"></div>
+                <div class="glass-button green"></div>
+            </div>
+            <div class="header-title">Glass Terminal</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="terminal">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">glass</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: () => {
+                return '<span class="badge blue">INFO</span>Available Commands:\n\n' +
+                       '  help        Show this help message\n' +
+                       '  about       About Glass Terminal\n' +
+                       '  features    List terminal features\n' +
+                       '  workspace   Show workspace info\n' +
+                       '  analytics   View analytics (demo)\n' +
+                       '  design      Design principles\n' +
+                       '  theme       Current theme info\n' +
+                       '  clear       Clear the terminal\n' +
+                       '  echo        Echo a message\n' +
+                       '  time        Show current time';
+            },
+            about: () => {
+                return '<span class="badge purple">ABOUT</span>Glass Terminal\n\n' +
+                       'A modern terminal interface featuring:\n' +
+                       '  • Glassmorphism design\n' +
+                       '  • Backdrop blur effects\n' +
+                       '  • Smooth animations\n' +
+                       '  • Translucent layers\n' +
+                       '  • Dynamic gradients\n\n' +
+                       'Version: 1.0.0\n' +
+                       'Design System: Glass UI';
+            },
+            features: () => {
+                return '<span class="badge green">FEATURES</span>Terminal Capabilities:\n\n' +
+                       '  ✓ Glassmorphism aesthetic\n' +
+                       '  ✓ Real-time backdrop filtering\n' +
+                       '  ✓ Responsive animations\n' +
+                       '  ✓ Color-coded output\n' +
+                       '  ✓ Custom scrollbar styling\n' +
+                       '  ✓ Floating background shapes\n' +
+                       '  ✓ Smooth gradient transitions\n' +
+                       '  ✓ Modern typography';
+            },
+            workspace: () => {
+                return '<span class="badge blue">WORKSPACE</span>Current Environment:\n\n' +
+                       '  Active Projects:     7\n' +
+                       '  Open Terminals:      3\n' +
+                       '  CPU Usage:          23%\n' +
+                       '  Memory:           8.2GB\n' +
+                       '  Network:          ✓ Connected\n' +
+                       '  Status:           ✓ Operational\n\n' +
+                       '  Last Activity:    2 minutes ago';
+            },
+            analytics: () => {
+                return '<span class="badge purple">ANALYTICS</span>Usage Statistics:\n\n' +
+                       '  Commands Executed:     ████████░░  842\n' +
+                       '  Uptime:                ████████░░  12h 34m\n' +
+                       '  Active Sessions:       ██████░░░░  6\n' +
+                       '  Data Processed:        ████████░░  2.4GB\n' +
+                       '  Success Rate:          ██████████  98%\n\n' +
+                       '  Performance: EXCELLENT';
+            },
+            design: () => {
+                return '<span class="badge green">DESIGN</span>Glassmorphism Principles:\n\n' +
+                       '  1. Transparency & blur\n' +
+                       '     Create depth with layered glass\n\n' +
+                       '  2. Vivid colors\n' +
+                       '     Use vibrant backgrounds\n\n' +
+                       '  3. Subtle borders\n' +
+                       '     Light borders enhance glass effect\n\n' +
+                       '  4. Background objects\n' +
+                       '     Visible through transparent layers';
+            },
+            theme: () => {
+                return '<span class="badge blue">THEME</span>Current Theme Configuration:\n\n' +
+                       '  Theme:           Glassmorphism\n' +
+                       '  Blur Strength:   20px\n' +
+                       '  Transparency:    10%\n' +
+                       '  Border Opacity:  30%\n' +
+                       '  Gradient:        Dynamic\n' +
+                       '  Animation:       Enabled\n\n' +
+                       '  Colors: Multi-gradient spectrum';
+            },
+            time: () => {
+                const now = new Date();
+                return '<span class="badge green">TIME</span>' + now.toLocaleString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`❯ glass ${cmd}`, '');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, '', true);
+                } else if (cmd) {
+                    addOutput('<span class="badge" style="background: rgba(255, 107, 107, 0.3);">ERROR</span>Command not found: ' + command + '\nType "help" for available commands.', '', true);
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '', isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.textContent = text;
+            }
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Startup message
+        addOutput('<span class="badge green">SYSTEM</span>Glass Terminal initialized', 'success', true);
+        addOutput('<span class="badge blue">DESIGN</span>Glassmorphism UI loaded', 'info', true);
+        addOutput('', '');
+        addOutput('Welcome to Glass Terminal - A modern, transparent interface', '');
+        addOutput('Type "help" to explore available commands', '');
+    </script>
+</body>
+</html>

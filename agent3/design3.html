@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amber Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000000;
+            color: #ffb000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .monitor-frame {
+            width: 920px;
+            height: 700px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 20px 20px 40px 40px;
+            padding: 25px 25px 40px 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+            position: relative;
+        }
+        .monitor-frame::after {
+            content: '';
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 10px;
+            background: linear-gradient(90deg, transparent, #333, transparent);
+            border-radius: 5px;
+        }
+        .terminal {
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            border: 4px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow:
+                inset 0 0 100px rgba(255, 176, 0, 0.15),
+                0 0 20px rgba(255, 176, 0, 0.3);
+            position: relative;
+        }
+        .terminal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(255, 176, 0, 0.05) 0px,
+                    transparent 1px,
+                    transparent 2px,
+                    rgba(255, 176, 0, 0.05) 3px
+                );
+            pointer-events: none;
+            border-radius: 8px;
+        }
+        .terminal::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+            pointer-events: none;
+            border-radius: 8px;
+        }
+        .screen-curve {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 12px;
+            background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(255, 176, 0, 0.1) 100%);
+            pointer-events: none;
+        }
+        #content {
+            position: relative;
+            z-index: 1;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            color: #ffb000;
+            text-shadow:
+                0 0 5px rgba(255, 176, 0, 0.8),
+                0 0 10px rgba(255, 176, 0, 0.5);
+            font-size: 15px;
+            line-height: 1.4;
+            animation: glow-in 0.2s ease-out;
+        }
+        @keyframes glow-in {
+            from {
+                opacity: 0;
+                text-shadow: 0 0 20px rgba(255, 176, 0, 1);
+            }
+            to {
+                opacity: 1;
+                text-shadow:
+                    0 0 5px rgba(255, 176, 0, 0.8),
+                    0 0 10px rgba(255, 176, 0, 0.5);
+            }
+        }
+        .output.dim {
+            color: #cc8800;
+            text-shadow: 0 0 3px rgba(204, 136, 0, 0.6);
+        }
+        .input-line {
+            display: flex;
+            margin-top: 8px;
+        }
+        .prompt {
+            color: #ffb000;
+            margin-right: 5px;
+            text-shadow:
+                0 0 8px rgba(255, 176, 0, 0.9),
+                0 0 15px rgba(255, 176, 0, 0.6);
+            font-weight: bold;
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ffb000;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow:
+                0 0 5px rgba(255, 176, 0, 0.8),
+                0 0 10px rgba(255, 176, 0, 0.5);
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background-color: #ffb000;
+            animation: amber-blink 0.9s infinite;
+            box-shadow: 0 0 8px rgba(255, 176, 0, 0.9);
+        }
+        @keyframes amber-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .flicker {
+            animation: flicker-effect 0.1s infinite;
+        }
+        @keyframes flicker-effect {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.95; }
+        }
+    </style>
+</head>
+<body>
+    <div class="monitor-frame">
+        <div class="terminal">
+            <div class="screen-curve"></div>
+            <div id="content">
+                <div id="output"></div>
+                <div class="input-line">
+                    <span class="prompt">$</span>
+                    <input type="text" id="input" autofocus>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        const terminal = document.querySelector('.terminal');
+
+        // Subtle flicker effect
+        setInterval(() => {
+            if (Math.random() > 0.98) {
+                terminal.classList.add('flicker');
+                setTimeout(() => terminal.classList.remove('flicker'), 100);
+            }
+        }, 100);
+
+        const commands = {
+            help: 'Available commands:\n\n' +
+                  '  ls        - list directory contents\n' +
+                  '  pwd       - print working directory\n' +
+                  '  whoami    - print current user\n' +
+                  '  uname     - print system information\n' +
+                  '  date      - display current date/time\n' +
+                  '  uptime    - show system uptime\n' +
+                  '  ps        - display running processes\n' +
+                  '  df        - report file system disk space\n' +
+                  '  free      - display memory usage\n' +
+                  '  history   - command history\n' +
+                  '  clear     - clear the screen\n' +
+                  '  echo      - display a line of text',
+            ls: () => {
+                const files = [
+                    'drwxr-xr-x  5 user  staff   160 Nov  9 14:30 bin',
+                    'drwxr-xr-x  3 user  staff    96 Nov  9 14:30 dev',
+                    'drwxr-xr-x  8 user  staff   256 Nov  9 14:30 etc',
+                    'drwxr-xr-x  4 user  staff   128 Nov  9 14:30 home',
+                    'drwxr-xr-x  7 user  staff   224 Nov  9 14:30 lib',
+                    'drwxr-xr-x  2 user  staff    64 Nov  9 14:30 mnt',
+                    '-rw-r--r--  1 user  staff  1024 Nov  9 14:30 README.txt',
+                    '-rwxr-xr-x  1 user  staff  8192 Nov  9 14:30 startup.sh',
+                    'drwxr-xr-x  6 user  staff   192 Nov  9 14:30 usr',
+                    'drwxr-xr-x  5 user  staff   160 Nov  9 14:30 var'
+                ];
+                return files.join('\n');
+            },
+            pwd: '/home/user/terminal',
+            whoami: 'user',
+            uname: () => {
+                return 'AmberOS 4.3BSD UNIX (amber-terminal)\n' +
+                       'VAX-11/780 architecture\n' +
+                       'Kernel version: 4.3.2';
+            },
+            date: () => {
+                const now = new Date();
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${days[now.getDay()]} ${months[now.getMonth()]} ${now.getDate()} ` +
+                       `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ` +
+                       `${now.getFullYear()}`;
+            },
+            uptime: () => {
+                const hours = Math.floor(Math.random() * 200) + 50;
+                const mins = Math.floor(Math.random() * 60);
+                const days = Math.floor(hours / 24);
+                const remainHours = hours % 24;
+                return `up ${days} days, ${remainHours}:${mins.toString().padStart(2, '0')}, ` +
+                       `2 users, load average: ${(Math.random() * 2).toFixed(2)}, ` +
+                       `${(Math.random() * 2).toFixed(2)}, ${(Math.random() * 2).toFixed(2)}`;
+            },
+            ps: () => {
+                return '  PID  TTY      TIME     CMD\n' +
+                       '  101  tty1     00:00:01 init\n' +
+                       '  243  tty1     00:00:00 getty\n' +
+                       '  312  tty1     00:00:02 bash\n' +
+                       '  445  tty1     00:00:00 cron\n' +
+                       '  567  tty1     00:00:03 sshd\n' +
+                       '  892  tty1     00:00:00 ps';
+            },
+            df: () => {
+                return 'Filesystem     1K-blocks    Used Available Use% Mounted on\n' +
+                       '/dev/rk0          19200   12480      6720  65% /\n' +
+                       '/dev/rk1          38400   15360     23040  40% /usr\n' +
+                       '/dev/rk2          76800   23040     53760  30% /home';
+            },
+            free: () => {
+                return '              total       used       free     shared    buffers     cached\n' +
+                       'Mem:          65536      48128      17408       2048       4096       8192\n' +
+                       '-/+ buffers/cache:       36864      28672\n' +
+                       'Swap:        131072      24576     106496';
+            },
+            history: () => {
+                const hist = [
+                    '  1  ls -la',
+                    '  2  cd /home/user',
+                    '  3  pwd',
+                    '  4  uname -a',
+                    '  5  ps aux',
+                    '  6  df -h',
+                    '  7  free',
+                    '  8  date',
+                    '  9  whoami',
+                    ' 10  history'
+                ];
+                return hist.join('\n');
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        // Command history
+        const commandHistory = [];
+        let historyIndex = -1;
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`$ ${cmd}`);
+
+                if (cmd) {
+                    commandHistory.push(cmd);
+                    historyIndex = commandHistory.length;
+                }
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'dim');
+                } else if (cmd) {
+                    addOutput(`${command}: command not found`, 'dim');
+                }
+
+                input.value = '';
+            }
+        });
+
+        // Arrow key history navigation
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    input.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    input.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    input.value = '';
+                }
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('AmberOS 4.3BSD UNIX (amber-terminal) (console)');
+        addOutput('');
+        addOutput('login: user');
+        addOutput('Password: ********');
+        addOutput('');
+        addOutput('Last login: ' + commands.date());
+        addOutput('');
+        addOutput('AmberOS 4.3BSD - Amber Terminal Emulator');
+        addOutput('Type "help" for a list of available commands.');
+        addOutput('');
+    </script>
+</body>
+</html>

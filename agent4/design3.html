@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steampunk Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', 'Times New Roman', serif;
+            background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 50%, #0d0604 100%);
+            color: #d4a574;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        #gears {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .gear {
+            position: absolute;
+            border: 3px solid #8b6f47;
+            border-radius: 50%;
+            animation: rotate 20s linear infinite;
+        }
+        .gear::before, .gear::after {
+            content: '';
+            position: absolute;
+            background: #8b6f47;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .terminal-frame {
+            width: 920px;
+            background: #1a0f0a;
+            border: 4px solid #8b6f47;
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow:
+                0 0 40px rgba(139, 111, 71, 0.4),
+                inset 0 0 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            z-index: 1;
+        }
+        .terminal-frame::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            border: 2px solid #6b5335;
+            border-radius: 22px;
+            z-index: -1;
+        }
+        .brass-corners {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #cd7f32;
+            background: radial-gradient(circle, #cd7f32, #8b6f47);
+        }
+        .corner-tl { top: 5px; left: 5px; border-right: none; border-bottom: none; }
+        .corner-tr { top: 5px; right: 5px; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: 5px; left: 5px; border-right: none; border-top: none; }
+        .corner-br { bottom: 5px; right: 5px; border-left: none; border-top: none; }
+        .header {
+            text-align: center;
+            color: #cd7f32;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(139, 111, 71, 0.1);
+            border: 2px double #8b6f47;
+            border-radius: 10px;
+            text-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
+            font-family: 'Times New Roman', serif;
+        }
+        .ornament {
+            display: inline-block;
+            margin: 0 10px;
+            color: #cd7f32;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        .terminal {
+            height: 540px;
+            background: rgba(10, 5, 2, 0.9);
+            border: 3px solid #6b5335;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
+        }
+        .terminal::-webkit-scrollbar {
+            width: 12px;
+        }
+        .terminal::-webkit-scrollbar-track {
+            background: #1a0f0a;
+            border: 1px solid #6b5335;
+        }
+        .terminal::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #cd7f32, #8b6f47);
+            border-radius: 6px;
+            border: 1px solid #6b5335;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #d4a574;
+            text-shadow: 0 0 3px rgba(212, 165, 116, 0.5);
+            animation: typewriter 0.3s ease-in;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        @keyframes typewriter {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 1000px;
+            }
+        }
+        .output.brass {
+            color: #cd7f32;
+            font-weight: bold;
+        }
+        .output.steam {
+            color: #b8b8b8;
+            font-style: italic;
+        }
+        .output.copper {
+            color: #b87333;
+        }
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .prompt {
+            color: #cd7f32;
+            margin-right: 10px;
+            text-shadow: 0 0 8px rgba(205, 127, 50, 0.6);
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .prompt::before {
+            content: '⚙';
+            margin-right: 5px;
+            animation: spin 4s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #d4a574;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 3px rgba(212, 165, 116, 0.5);
+        }
+        .gauge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            border: 4px solid #8b6f47;
+            border-radius: 50%;
+            background: radial-gradient(circle, #1a0f0a, #0d0604);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+            font-size: 11px;
+            color: #cd7f32;
+        }
+        .gauge-label {
+            font-size: 8px;
+            color: #8b6f47;
+        }
+        .pressure-indicator {
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 5px #cd7f32;
+        }
+        .steam-effect {
+            color: #b8b8b8;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="gears"></div>
+    <div class="terminal-frame">
+        <div class="brass-corners corner-tl"></div>
+        <div class="brass-corners corner-tr"></div>
+        <div class="brass-corners corner-bl"></div>
+        <div class="brass-corners corner-br"></div>
+        <div class="gauge">
+            <div class="gauge-label">PRESSURE</div>
+            <div class="pressure-indicator" id="pressure">75</div>
+            <div class="gauge-label">PSI</div>
+        </div>
+        <div class="header">
+            <span class="ornament">⚙</span>
+            <span class="ornament">═</span>
+            VICTORIAN ANALYTICAL ENGINE
+            <span class="ornament">═</span>
+            <span class="ornament">⚙</span><br>
+            <div style="font-size: 12px; margin-top: 8px;">
+                Mechanical Computing Apparatus • Est. MDCCCLXII
+            </div>
+        </div>
+        <div class="terminal">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">Engine</span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        const pressureGauge = document.getElementById('pressure');
+
+        // Create animated gears
+        function createGears() {
+            const gearsContainer = document.getElementById('gears');
+            const sizes = [60, 80, 120, 100, 70];
+            const positions = [
+                {top: '10%', left: '5%'},
+                {top: '60%', left: '10%'},
+                {top: '20%', right: '8%'},
+                {top: '70%', right: '15%'},
+                {top: '40%', left: '50%'}
+            ];
+
+            for (let i = 0; i < 5; i++) {
+                const gear = document.createElement('div');
+                gear.className = 'gear';
+                gear.style.width = sizes[i] + 'px';
+                gear.style.height = sizes[i] + 'px';
+                Object.assign(gear.style, positions[i]);
+                gear.style.animationDuration = (15 + Math.random() * 10) + 's';
+                gear.style.animationDirection = i % 2 === 0 ? 'normal' : 'reverse';
+                gearsContainer.appendChild(gear);
+            }
+        }
+        createGears();
+
+        // Pressure gauge animation
+        setInterval(() => {
+            const pressure = Math.floor(Math.random() * 15 + 70);
+            pressureGauge.textContent = pressure;
+        }, 3000);
+
+        const commands = {
+            help: `═══════════════════════════════════════════════════════
+            ANALYTICAL ENGINE COMMAND REGISTRY
+═══════════════════════════════════════════════════════
+
+  MECHANICAL OPERATIONS:
+    calculate     - Perform arithmetical calculations
+    gears         - Display gear mechanism status
+    steam         - Steam pressure report
+    time          - Chronometer reading
+    telegraph     - Send telegraph message
+
+  VICTORIAN UTILITIES:
+    library       - Access technical library
+    blueprint     - Generate technical blueprints
+    invention     - Random invention generator
+    quote         - Inspirational Victorian quotes
+    almanac       - Historical almanac
+
+  SYSTEM COMMANDS:
+    status        - Engine operational status
+    clear         - Clear the display panel
+    echo          - Echo transmission`,
+
+            calculate: (args) => {
+                if (args.length === 0) {
+                    return 'Please provide calculation. Example: calculate 2+2';
+                }
+                try {
+                    const expr = args.join('').replace(/[^0-9+\-*/().]/g, '');
+                    const result = eval(expr);
+                    return `⚙ CALCULATION COMPLETE ⚙
+
+Input:    ${expr}
+Output:   ${result}
+
+Gears rotated: ${Math.floor(Math.random() * 1000 + 500)}
+Processing time: ${(Math.random() * 2 + 0.5).toFixed(2)} seconds`;
+                } catch (e) {
+                    return 'ERROR: Invalid arithmetical expression';
+                }
+            },
+
+            gears: () => {
+                return `⚙ GEAR MECHANISM STATUS ⚙
+
+Primary Gear Assembly:    ✓ OPERATIONAL
+Secondary Drive System:   ✓ OPERATIONAL
+Differential Analyzer:    ✓ OPERATIONAL
+Computation Wheels:       ✓ OPERATIONAL
+
+Gear Ratios:
+  Main Drive:     3.14:1
+  Secondary:      2.72:1
+  Tertiary:       1.62:1
+
+Lubrication Level:  ████████░░ 82%
+Wear Status:        ██████████ Minimal
+
+Last Maintenance: 3 days hence
+Next Service Due: 11 days hence`;
+            },
+
+            steam: () => {
+                const pressure = Math.floor(Math.random() * 20 + 70);
+                const temp = Math.floor(Math.random() * 50 + 200);
+                return `⚙ STEAM PRESSURE REPORT ⚙
+
+Boiler Pressure:    ${pressure} PSI
+Temperature:        ${temp}°F
+Water Level:        ████████░░ 75%
+Coal Reserve:       ██████░░░░ 60%
+
+Valve Status:
+  Primary Relief:   ✓ CLOSED
+  Secondary:        ✓ CLOSED
+  Emergency:        ✓ STANDBY
+
+Steam Quality: EXCELLENT
+Efficiency: ${Math.floor(Math.random() * 15 + 80)}%`;
+            },
+
+            time: () => {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+
+                return `⚙ CHRONOMETER READING ⚙
+
+Hour:     ${hours} ${hours >= 12 ? 'post meridiem' : 'ante meridiem'}
+Minute:   ${minutes}
+Second:   ${seconds}
+
+Date:     ${now.getDate()}th day of ${now.toLocaleString('en', { month: 'long' })}, ${now.getFullYear()}
+Day:      ${now.toLocaleString('en', { weekday: 'long' })}
+
+"Time is the wisest counsellor of all."
+                                    - Pericles`;
+            },
+
+            telegraph: (args) => {
+                if (args.length === 0) {
+                    return 'Provide message to transmit via telegraph.';
+                }
+                const message = args.join(' ').toUpperCase();
+                const morse = message.split('').map(c => {
+                    if (c === ' ') return '/';
+                    return '• - -';
+                }).join(' ');
+
+                return `⚙ TELEGRAPH TRANSMISSION ⚙
+
+MESSAGE: ${message}
+
+MORSE CODE:
+${morse}
+
+⚡ ~ ~ ~ Transmitting ~ ~ ~ ⚡
+
+Status: SENT
+Acknowledgment: AWAITING`;
+            },
+
+            library: () => {
+                const books = [
+                    '"On the Economy of Machinery" - Charles Babbage, 1832',
+                    '"Passages from the Life of a Philosopher" - Babbage, 1864',
+                    '"Sketch of the Analytical Engine" - Ada Lovelace, 1843',
+                    '"The Difference Engine" - Technical Manual, 1822',
+                    '"Steam Engine Principles" - James Watt, 1776',
+                    '"Mathematical Tables" - Various Authors, 1858',
+                    '"Mechanical Engineering Compendium" - 1851'
+                ];
+
+                let result = '⚙ TECHNICAL LIBRARY CATALOGUE ⚙\n\n';
+                books.forEach((book, i) => {
+                    result += `[${i + 1}] ${book}\n`;
+                });
+
+                return result;
+            },
+
+            blueprint: () => {
+                return `⚙ GENERATING TECHNICAL BLUEPRINT ⚙
+
+    ╔═══════════════════════════════════╗
+    ║  MECHANICAL COMPONENT DIAGRAM     ║
+    ╠═══════════════════════════════════╣
+    ║                                   ║
+    ║     ⚙────────⚙                   ║
+    ║     │        │                    ║
+    ║     │   ⊕    │                    ║
+    ║     │        │                    ║
+    ║     ⚙────────⚙                   ║
+    ║        │  │                       ║
+    ║        ▼  ▼                       ║
+    ║       ╔════╗                      ║
+    ║       ║ [] ║                      ║
+    ║       ╚════╝                      ║
+    ║                                   ║
+    ╚═══════════════════════════════════╝
+
+    Scale: 1:10
+    Material: Brass & Steel
+    Precision: 0.001 inches`;
+            },
+
+            invention: () => {
+                const adjectives = ['Automatic', 'Steam-Powered', 'Clockwork', 'Pneumatic', 'Hydraulic', 'Mechanical'];
+                const devices = ['Calculator', 'Chronometer', 'Difference Engine', 'Loom', 'Telegraph', 'Locomotive'];
+                const purposes = ['for Navigation', 'for Computation', 'for Textile Production', 'for Communication', 'for Transportation', 'for Industry'];
+
+                const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+                const dev = devices[Math.floor(Math.random() * devices.length)];
+                const pur = purposes[Math.floor(Math.random() * purposes.length)];
+
+                return `⚙ INVENTION GENERATED ⚙
+
+Name: The ${adj} ${dev}
+Purpose: ${pur}
+
+Description: A most ingenious contraption utilizing
+the finest brass gears and steam-powered mechanisms.
+This device shall revolutionize modern industry!
+
+Patent Status: PENDING
+Est. Production Cost: £${Math.floor(Math.random() * 5000 + 1000)}`;
+            },
+
+            quote: () => {
+                const quotes = [
+                    '"We can only see a short distance ahead, but we can see plenty there that needs to be done."\n- Alan Turing',
+                    '"The Analytical Engine weaves algebraic patterns, just as the Jacquard loom weaves flowers."\n- Ada Lovelace',
+                    '"Errors using inadequate data are much less than those using no data at all."\n- Charles Babbage',
+                    '"The science of calculation also is indispensable."\n- Ada Lovelace',
+                    '"At each increase of knowledge, as well as on the contrivance of every new tool, human labour becomes abridged."\n- Charles Babbage',
+                    '"That brain of mine is something more than merely mortal, as time will show."\n- Ada Lovelace'
+                ];
+
+                return '⚙ INSPIRATIONAL WISDOM ⚙\n\n' + quotes[Math.floor(Math.random() * quotes.length)];
+            },
+
+            almanac: () => {
+                const now = new Date();
+                return `⚙ VICTORIAN ALMANAC ⚙
+
+Year of Our Lord: ${now.getFullYear()}
+Current Month: ${now.toLocaleString('en', { month: 'long' })}
+Day: ${now.getDate()}
+
+Historical Events of Note:
+• 1822 - Difference Engine conceived
+• 1837 - Analytical Engine designed
+• 1843 - First computer algorithm
+• 1851 - The Great Exhibition
+
+"The march of science waits for no man."`;
+            },
+
+            status: () => {
+                return `⚙ ENGINE OPERATIONAL STATUS ⚙
+
+System Components:
+  Analytical Processor:  ✓ OPERATIONAL
+  Memory Wheels:         ✓ OPERATIONAL
+  Input Cards:           ✓ READY
+  Output Printer:        ✓ READY
+  Gear Assembly:         ✓ OPERATIONAL
+
+Performance Metrics:
+  Calculations/Hour:     ${Math.floor(Math.random() * 500 + 1000)}
+  Accuracy:              99.97%
+  Uptime:                ${Math.floor(Math.random() * 100 + 500)} hours
+
+All systems functioning within nominal parameters.`;
+            },
+
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                addOutput(`⚙ Engine> ${cmd}`, 'brass');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result, 'copper');
+                } else if (cmd) {
+                    addOutput(`⚠ UNKNOWN COMMAND: ${command}\nConsult 'help' for available operations.`, 'steam');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        // Boot sequence
+        addOutput('═══════════════════════════════════════════', 'brass');
+        addOutput('  VICTORIAN ANALYTICAL ENGINE v1.843', 'brass');
+        addOutput('═══════════════════════════════════════════', 'brass');
+        addOutput('');
+        addOutput('Initializing mechanical components...', 'steam');
+        addOutput('Loading calculation wheels... ✓', 'steam');
+        addOutput('Engaging gear mechanisms... ✓', 'steam');
+        addOutput('Building steam pressure... ✓', 'steam');
+        addOutput('');
+        addOutput('⚙ Engine ready for operation ⚙', 'brass');
+        addOutput('');
+        addOutput('Type "help" for available commands.', 'copper');
+        addOutput('');
+    </script>
+</body>
+</html>

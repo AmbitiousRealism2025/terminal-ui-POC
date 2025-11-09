@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inferno Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(180deg, #1a0000 0%, #330000 25%, #4d0000 50%, #330000 75%, #1a0000 100%);
+            color: #ff6600;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .embers {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .ember {
+            position: absolute;
+            background: radial-gradient(circle, #ffaa00 0%, #ff4400 50%, transparent 100%);
+            border-radius: 50%;
+            animation: float-up 8s infinite ease-out;
+            opacity: 0.8;
+        }
+        @keyframes float-up {
+            0% {
+                bottom: -20px;
+                opacity: 0.9;
+                transform: translateX(0) scale(1);
+            }
+            50% {
+                opacity: 0.6;
+            }
+            100% {
+                bottom: 110vh;
+                opacity: 0;
+                transform: translateX(100px) scale(0.3);
+            }
+        }
+        .terminal {
+            width: 900px;
+            height: 650px;
+            background: linear-gradient(135deg,
+                rgba(26, 0, 0, 0.95) 0%,
+                rgba(51, 0, 0, 0.9) 50%,
+                rgba(26, 0, 0, 0.95) 100%);
+            border: 3px solid #ff4400;
+            border-radius: 15px;
+            padding: 30px;
+            overflow-y: auto;
+            box-shadow:
+                0 0 40px rgba(255, 68, 0, 0.6),
+                0 0 80px rgba(255, 102, 0, 0.3),
+                inset 0 0 60px rgba(255, 68, 0, 0.1);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(5px);
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow:
+                    0 0 40px rgba(255, 68, 0, 0.6),
+                    0 0 80px rgba(255, 102, 0, 0.3),
+                    inset 0 0 60px rgba(255, 68, 0, 0.1);
+            }
+            50% {
+                box-shadow:
+                    0 0 50px rgba(255, 68, 0, 0.8),
+                    0 0 100px rgba(255, 102, 0, 0.4),
+                    inset 0 0 80px rgba(255, 68, 0, 0.15);
+            }
+        }
+        .terminal::before {
+            content: '≈≈≈ INFERNO SYSTEM CORE ≈≈≈';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            color: #ffaa00;
+            text-shadow: 0 0 15px rgba(255, 170, 0, 1);
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+        .heat-wave {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent 0px,
+                rgba(255, 68, 0, 0.03) 10px,
+                transparent 20px
+            );
+            pointer-events: none;
+            animation: heat-distortion 2s linear infinite;
+            border-radius: 15px;
+        }
+        @keyframes heat-distortion {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(20px); }
+        }
+        #content {
+            margin-top: 30px;
+        }
+        .output {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            color: #ff6600;
+            text-shadow: 0 0 8px rgba(255, 102, 0, 0.8);
+            animation: flicker-in 0.3s ease-in;
+        }
+        @keyframes flicker-in {
+            0%, 20%, 40%, 60% {
+                opacity: 0;
+            }
+            10%, 30%, 50%, 70%, 100% {
+                opacity: 1;
+            }
+        }
+        .output.hot {
+            color: #ffaa00;
+            text-shadow: 0 0 12px rgba(255, 170, 0, 1);
+            font-weight: bold;
+        }
+        .output.critical {
+            color: #ff0000;
+            text-shadow: 0 0 15px rgba(255, 0, 0, 1);
+            animation: blink-warning 0.5s infinite;
+        }
+        @keyframes blink-warning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .input-line {
+            display: flex;
+            margin-top: 15px;
+        }
+        .prompt {
+            color: #ff4400;
+            margin-right: 10px;
+            text-shadow: 0 0 12px rgba(255, 68, 0, 1);
+            font-weight: bold;
+            animation: flame-flicker 0.5s ease-in-out infinite;
+        }
+        @keyframes flame-flicker {
+            0%, 100% {
+                text-shadow: 0 0 12px rgba(255, 68, 0, 1);
+            }
+            50% {
+                text-shadow: 0 0 20px rgba(255, 170, 0, 1), 0 0 30px rgba(255, 68, 0, 0.5);
+            }
+        }
+        #input {
+            background: transparent;
+            border: none;
+            color: #ff6600;
+            font-family: 'Courier New', monospace;
+            font-size: 17px;
+            outline: none;
+            flex-grow: 1;
+            text-shadow: 0 0 5px rgba(255, 102, 0, 0.8);
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 22px;
+            background: linear-gradient(180deg, #ffaa00, #ff4400);
+            animation: cursor-blink 0.8s infinite;
+            box-shadow: 0 0 15px rgba(255, 170, 0, 0.8);
+        }
+        @keyframes cursor-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="embers" id="embers"></div>
+    <div class="terminal">
+        <div class="heat-wave"></div>
+        <div id="content">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="prompt">🔥></span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Create embers
+        const embersContainer = document.getElementById('embers');
+        for (let i = 0; i < 40; i++) {
+            const ember = document.createElement('div');
+            ember.className = 'ember';
+            const size = Math.random() * 8 + 2;
+            ember.style.width = size + 'px';
+            ember.style.height = size + 'px';
+            ember.style.left = Math.random() * 100 + '%';
+            ember.style.animationDelay = Math.random() * 8 + 's';
+            ember.style.animationDuration = (Math.random() * 5 + 6) + 's';
+            embersContainer.appendChild(ember);
+        }
+
+        // Terminal logic
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+
+        const commands = {
+            help: '🔥 INFERNO TERMINAL COMMANDS 🔥\n\n' +
+                  '  ignite     - Start the furnace\n' +
+                  '  temp       - Check core temperature\n' +
+                  '  burn       - Initiate burn sequence\n' +
+                  '  extinguish - Emergency shutdown\n' +
+                  '  pressure   - Check pressure levels\n' +
+                  '  forge      - Forge status\n' +
+                  '  heat       - Heat distribution\n' +
+                  '  fuel       - Check fuel levels\n' +
+                  '  clear      - Clear terminal\n' +
+                  '  echo       - Echo message',
+            ignite: () => {
+                return '🔥 IGNITION SEQUENCE INITIATED\n\n' +
+                       'Fuel injection... ACTIVE\n' +
+                       'Spark chambers... CHARGED\n' +
+                       'Safety locks... DISENGAGED\n\n' +
+                       'Igniting in: 3... 2... 1...\n\n' +
+                       '💥 FURNACE IGNITED!\n\n' +
+                       'Temperature rising: 500°C... 1000°C... 1500°C...\n' +
+                       'Core temperature: 2000°C\n' +
+                       'Status: OPERATIONAL';
+            },
+            temp: () => {
+                const temp = Math.floor(Math.random() * 2000) + 1500;
+                const status = temp > 2500 ? 'CRITICAL' : temp > 2000 ? 'WARNING' : 'NORMAL';
+                return `🔥 CORE TEMPERATURE READING\n\n` +
+                       `Current Temperature: ${temp}°C\n` +
+                       `Maximum Rated: 3000°C\n` +
+                       `Status: ${status}\n\n` +
+                       `Heat Distribution:\n` +
+                       `  Chamber 1: ${'█'.repeat(Math.floor(temp/150))}░ ${(temp * 0.9).toFixed(0)}°C\n` +
+                       `  Chamber 2: ${'█'.repeat(Math.floor(temp/150))}░ ${(temp * 0.95).toFixed(0)}°C\n` +
+                       `  Chamber 3: ${'█'.repeat(Math.floor(temp/150))}░ ${temp}°C\n` +
+                       `  Chamber 4: ${'█'.repeat(Math.floor(temp/150))}░ ${(temp * 0.92).toFixed(0)}°C`;
+            },
+            burn: () => {
+                return '🔥 BURN SEQUENCE ACTIVATED\n\n' +
+                       'Oxygen injection: MAXIMUM\n' +
+                       'Fuel flow: INCREASED\n\n' +
+                       'Temperature rising...\n' +
+                       '████░░░░░░░░░░░░░░░░ 20%  1800°C\n' +
+                       '████████░░░░░░░░░░░░ 40%  2200°C\n' +
+                       '████████████░░░░░░░░ 60%  2600°C\n' +
+                       '████████████████░░░░ 80%  2900°C\n' +
+                       '████████████████████ 100% 3200°C\n\n' +
+                       '⚠️  MAXIMUM BURN ACHIEVED!\n' +
+                       'WARNING: Operating above safe limits!';
+            },
+            extinguish: () => {
+                return '🔥 EMERGENCY SHUTDOWN INITIATED\n\n' +
+                       'Cutting fuel supply... DONE\n' +
+                       'Reducing oxygen... DONE\n' +
+                       'Engaging coolant systems... ACTIVE\n\n' +
+                       'Temperature falling:\n' +
+                       '2800°C... 2400°C... 2000°C...\n' +
+                       '1600°C... 1200°C... 800°C...\n' +
+                       '400°C... 200°C... 100°C...\n\n' +
+                       '✓ FURNACE SAFELY EXTINGUISHED\n' +
+                       'Core temperature: 50°C\n' +
+                       'Status: OFFLINE';
+            },
+            pressure: () => {
+                const pressure = (Math.random() * 50 + 100).toFixed(1);
+                return `🔥 PRESSURE SYSTEMS CHECK\n\n` +
+                       `Internal Pressure: ${pressure} PSI\n` +
+                       `Safety Threshold: 200 PSI\n` +
+                       `Relief Valves: ${pressure > 150 ? 'ENGAGED' : 'STANDBY'}\n\n` +
+                       `Chamber Pressures:\n` +
+                       `  North:  ${(pressure * 0.95).toFixed(1)} PSI\n` +
+                       `  South:  ${(pressure * 1.02).toFixed(1)} PSI\n` +
+                       `  East:   ${(pressure * 0.98).toFixed(1)} PSI\n` +
+                       `  West:   ${(pressure * 1.01).toFixed(1)} PSI\n\n` +
+                       `Status: ${pressure > 150 ? 'ELEVATED' : 'NORMAL'}`;
+            },
+            forge: () => {
+                const forges = [
+                    { name: 'Blade Forge', temp: 1800, status: 'ACTIVE' },
+                    { name: 'Armor Forge', temp: 1500, status: 'ACTIVE' },
+                    { name: 'Tool Forge', temp: 1200, status: 'COOLING' },
+                    { name: 'Master Forge', temp: 2500, status: 'MAXIMUM' }
+                ];
+                let result = '🔥 FORGE STATUS REPORT\n\n';
+                forges.forEach(f => {
+                    result += `${f.name}:\n`;
+                    result += `  Temperature: ${f.temp}°C\n`;
+                    result += `  Status: ${f.status}\n\n`;
+                });
+                return result + 'Total forges active: 3/4';
+            },
+            heat: () => {
+                return '🔥 HEAT DISTRIBUTION MATRIX\n\n' +
+                       '     NORTH\n' +
+                       '  ███████████  2200°C\n' +
+                       '  ███████████\n\n' +
+                       'WEST ████ EAST\n' +
+                       '1900°C   2100°C\n\n' +
+                       '     SOUTH\n' +
+                       '  ███████████  2300°C\n' +
+                       '  ███████████\n\n' +
+                       'CENTER CORE: 2500°C\n' +
+                       'Average: 2200°C';
+            },
+            fuel: () => {
+                const fuelLevel = Math.floor(Math.random() * 40) + 60;
+                return `🔥 FUEL SYSTEMS CHECK\n\n` +
+                       `Primary Tank: ${'█'.repeat(fuelLevel/5)}${'░'.repeat(20-fuelLevel/5)} ${fuelLevel}%\n` +
+                       `Reserve Tank: ${'█'.repeat(18)}${'░'.repeat(2)} 90%\n\n` +
+                       `Consumption Rate: ${(Math.random() * 5 + 10).toFixed(2)} L/min\n` +
+                       `Estimated Runtime: ${Math.floor(fuelLevel * 2.5)} minutes\n\n` +
+                       `Fuel Type: Hyper-Thermal Compound\n` +
+                       `Status: ${fuelLevel > 80 ? 'OPTIMAL' : fuelLevel > 40 ? 'GOOD' : 'LOW'}`;
+            },
+            clear: () => { output.innerHTML = ''; return ''; },
+            echo: (args) => args.join(' ')
+        };
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim();
+                const parts = cmd.split(' ');
+                const command = parts[0];
+                const args = parts.slice(1);
+
+                addOutput(`🔥> ${cmd}`, 'hot');
+
+                if (commands[command]) {
+                    const result = typeof commands[command] === 'function'
+                        ? commands[command](args)
+                        : commands[command];
+                    if (result) addOutput(result);
+                } else if (cmd) {
+                    addOutput(`⚠️ Unknown command: "${command}"\nType "help" for available commands.`, 'critical');
+                }
+
+                input.value = '';
+            }
+        });
+
+        function addOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'output ' + className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        addOutput('╔══════════════════════════════════════════════════════╗', 'hot');
+        addOutput('║          INFERNO CORE CONTROL SYSTEM                 ║', 'hot');
+        addOutput('║          Thermal Management: ONLINE                  ║', 'hot');
+        addOutput('╚══════════════════════════════════════════════════════╝', 'hot');
+        addOutput('');
+        addOutput('⚠️  WARNING: High temperature environment detected');
+        addOutput('Core furnace initialized. Current temperature: 1500°C');
+        addOutput('');
+        addOutput('Type "help" for available commands.');
+    </script>
+</body>
+</html>
